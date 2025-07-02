@@ -268,6 +268,7 @@ primInteger, primIntegerPos, primIntegerNegSuc,
     primGlue, prim_glue, prim_unglue,
     prim_glueU, prim_unglueU,
     primFaceForall,
+    primUIP, primSqFill,
     primNatPlus, primNatMinus, primNatTimes, primNatDivSucAux, primNatModSucAux,
     primNatEquality, primNatLess,
     -- Machine words
@@ -369,6 +370,8 @@ prim_unglueU                          = getPrimitiveTerm builtin_unglueU
 primGlue                              = getPrimitiveTerm builtinGlue
 prim_glue                             = getPrimitiveTerm builtin_glue
 prim_unglue                           = getPrimitiveTerm builtin_unglue
+primUIP                               = getPrimitiveTerm builtinUIP
+primSqFill                            = getPrimitiveTerm builtinSqFill
 primFaceForall                        = getPrimitiveTerm builtinFaceForall
 primIsOne1                            = getBuiltin builtinIsOne1
 primIsOne2                            = getBuiltin builtinIsOne2
