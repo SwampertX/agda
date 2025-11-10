@@ -230,6 +230,7 @@ jsPreModule opts _ m mifile = do
         Just CFull        -> False
         Just CErased      -> True
         Just CWithoutGlue -> True
+        Just CUip         -> True
         Nothing           -> True
   ifM uptodate noComp (yesComp compile)
   where

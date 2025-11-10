@@ -64,11 +64,13 @@ instance EmbPrj Cubical where
   icod_ CWithoutGlue = icodeN'  CWithoutGlue
   icod_ CErased      = icodeN 0 CErased
   icod_ CFull        = icodeN 1 CFull
+  icod_ CUip         = icodeN 2 CUip
 
   value = vcase $ \case
     N0   -> valuN CWithoutGlue
     N1 0 -> valuN CErased
     N1 1 -> valuN CFull
+    N1 2 -> valuN CUip
     _    -> malformed
 
 instance EmbPrj Language where

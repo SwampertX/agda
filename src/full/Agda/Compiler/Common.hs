@@ -161,6 +161,8 @@ inCompilerEnv checkResult cont = do
     -- Perhaps all pragma options from the top-level module should be
     -- made available to the compiler in a suitable way. Here are more
     -- hacks:
+    when (any ("--cubical=uip" `elem`) $ iFilePragmaStrings mainI) $
+      setTCLens (stPragmaOptions . lensOptCubical) $ Just CUip
     when (any (any (flip elem ["--cubical", "--cubical=full"])) $ iFilePragmaStrings mainI) $
       setTCLens (stPragmaOptions . lensOptCubical) $ Just CFull
     when (any (any (flip elem ["--erased-cubical", "--cubical=erased"])) $ iFilePragmaStrings mainI) $

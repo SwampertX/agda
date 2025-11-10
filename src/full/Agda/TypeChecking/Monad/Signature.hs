@@ -677,6 +677,7 @@ applySection' new ptel old ts ren@ScopeCopyInfo{ renNames = rd, renModules = rm 
                         -- Note that Cubical Agda code can be imported
                         -- when --cubical=erased is used.
                         l@(Cubical CFull)    -> l
+                        Cubical CUip         -> lang
                         Cubical CErased      -> lang
                         Cubical CWithoutGlue -> lang
                         WithoutK             -> lang
@@ -1001,6 +1002,7 @@ getOriginalConstInfo q = do
   def  <- getConstInfo q
   lang <- getLanguage
   case (lang, defLanguage def) of
+    -- YJ TODO: what's up with this?
     (Cubical CErased, Cubical CFull) ->
       locallyTCState
         (stPragmaOptions . lensOptCubical)

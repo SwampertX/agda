@@ -1334,7 +1334,8 @@ instance PrettyTCM TypeError where
       opt = case cubical of
         CFull        -> "--cubical[=full]"
         CErased      -> "--cubical[={full,erased}]"
-        CWithoutGlue -> "--cubical[={full,erased,no-glue}]"
+        CWithoutGlue -> "--cubical[={full,erased,no-glue,uip}]"
+        CUip         -> "--cubical=uip"
 
     NeedOptionPatternMatching -> fsep $
       pwords "Pattern matching is disabled (use option --pattern-matching to enable it)"

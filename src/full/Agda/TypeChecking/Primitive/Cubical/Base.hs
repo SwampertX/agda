@@ -71,10 +71,12 @@ requireCubical'
 requireCubical' wanted reason = do
   cubical         <- cubicalOption
   inErasedContext <- hasQuantity0 <$> viewTC eQuantity
+  -- YJ TODO: refactor this to match on (cubical, wanted)?
   case cubical of
-    Just CFull -> return ()
+    Just CFull | wanted == CFull-> return ()
     Just CErased | wanted /= CFull || inErasedContext -> return ()
-    Just CWithoutGlue | wanted == CWithoutGlue -> return ()
+    Just CWithoutGlue | wanted `elem` [CWithoutGlue, CUip] -> return ()
+    Just CUip | wanted == CUip -> return ()
     _ -> typeError $ NeedOptionCubical wanted reason
 
 -- | Our good friend the interval type.

@@ -921,6 +921,7 @@ infectiveCoinfectiveOptions =
   , coinfectiveOption (not . optCumulativity) "--no-cumulativity"
   , coinfectiveOption optLevelUniverse        "--level-universe"
   , infectiveOption (isJust . optCubical)     "--cubical[={full,erased,no-glue}]"
+  -- YJ TODO: should add cubicalUIP. can only import no-glue, but is infective.
   , cubicalWithoutGlue
   , infectiveOption optGuarded                "--guarded"
   , infectiveOption optProp                   "--prop"
@@ -1136,11 +1137,13 @@ cubicalFlagOptArg :: Maybe String -> Flag PragmaOptions
 cubicalFlagOptArg s = case s of
   Nothing           -> cubicalFlag CFull
   Just "full"       -> cubicalFlag CFull
+  Just "uip"        -> cubicalFlag CUip
   Just "erased"     -> cubicalFlag CErased
   Just "no-glue"    -> cubicalFlag CWithoutGlue
   Just "compatible" -> cubicalCompatibleFlag
-  _ -> return $ throwError
-    "Cubical variant can be omitted or one of {compatible, no-glue, erased, full}."
+  _ -> return $ throwError $
+    "Cubical variant can be omitted (meaning 'full') or one of" ++
+    "'compatible', 'no-glue', 'erased', 'full', or 'uip'."
 
 cubicalCompatibleFlag :: Flag PragmaOptions
 cubicalCompatibleFlag o =

@@ -53,6 +53,7 @@ import qualified Agda.Utils.BoolSet as BoolSet
 import Agda.TypeChecking.Primitive.Cubical.HCompU
 import Agda.TypeChecking.Primitive.Cubical.Glue
 import Agda.TypeChecking.Primitive.Cubical.Base
+import Agda.TypeChecking.Monad.Base (Reduced(NoReduction))
 
 primPOr :: TCM PrimitiveImpl
 primPOr = do
@@ -832,7 +833,7 @@ primFaceForall' = do
 
 primUIP' :: TCM PrimitiveImpl
 primUIP' = do
-  requireCubical CWithoutGlue
+  requireCubical CUip
   t <-  runNamesT [] $
         hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
         hPi' "A" (sort . tmSort <$> la) $ \ bA ->
@@ -848,7 +849,7 @@ primUIP' = do
 
 primSqFill' :: TCM PrimitiveImpl
 primSqFill' = do
-  requireCubical CWithoutGlue
+  requireCubical CUip
   t <-  runNamesT [] $
         hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
         nPi' "A" (nPi' "i" primIntervalType $ \ i ->
@@ -876,6 +877,9 @@ primSqFill' = do
 
   return $ PrimImpl t $
     PrimFun __IMPOSSIBLE__ 10 [] $ \ts _nelims ->
+      -- given ts, the list of terms applied to UIP,
+      -- and the number of eliminations (YJ: copattern? where are the actual eliminations stored?)
+      -- what if we get fewer than 10 arguments? 
       return $ NoReduction []
 
 -- | Tries to @primTransp@ a whole telescope of arguments, following the rule for Σ types.
