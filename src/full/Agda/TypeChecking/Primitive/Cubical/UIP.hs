@@ -33,7 +33,7 @@ spread = runNamesT [] $ do
   lam "bA" $ \bA ->
     lam "i" $ \i ->
     lam "j" $ \j ->
-    lam "a" $ \a -> 
+    lam "a" $ \a ->
     lam "i'" $ \i' ->
     lam "j'" $ \j' -> do
       let
@@ -52,11 +52,11 @@ transportFiller = runNamesT [] $ do
     lam "a"  $ \a ->
     lam "i"  $ \i -> do
       tTrans <- getTerm "transp for UIP" builtinTrans
-      return tTrans 
+      return tTrans
         <@> (lam "j" \j -> p <@> (imin i j))
         <@> ineg i
         <@> a
-    
+
 -- ≡spread : (i j : I) (a : A i j) → a ≡ spread i j a i j
 -- ≡spread i j a = transport-filler (λ k → A (if k then i else i end) (if k then j else j end)) a
 spreadFill :: HasBuiltins m => m Term
@@ -64,7 +64,7 @@ spreadFill = runNamesT [] $ do
   lam "bA" $ \bA ->
     lam "i" $ \i ->
     lam "j" $ \j ->
-    lam "a" $ \a -> 
+    lam "a" $ \a ->
     lam "i'" $ \i' ->
     lam "j'" $ \j' -> do
       let
@@ -113,19 +113,29 @@ primSqFill' = do
             --       k (i = i1) → r j (≡spread i j a (~ k))
             --       k (j = i0) → u i (≡spread i j a (~ k))
             --       k (j = i1) → d i (≡spread i j a (~ k))) (b i j)
-            t@(Pi bDom bCodom) -> do
+            t@(Pi bDom bCodom) -> runNamesT [] $ do
               tComp <- getTerm "comp for UIP" builtinComp
+              -- the term is a huge comp.
               let
-                tbB = unEl . unAbs $ bCodom
+                tbB     = unEl . unAbs $ bCodom
                 sqFillB = primSqFill <@> pure tbB
-                compType =
-                  lam "k" \k -> pure tbB <@> i <@> j <@> spreadFill <@> i <@> j <@> a <@> ineg k
-                phi = foldr (<@>) [i, ineg i, j, ineg j]
-                faces = _ -- FIXME: there is a comp example in TypeChecking.Primitive.Cubical.transpSysTel'
-                bij = _
-              lam "i" $ \i -> lam "j" $ \j ->
-                pure tComp <@> compType <#> phi <@> faces <@> bij
-
+              lam "i" $ \i ->
+                lam "j" $ \j ->
+                  let
+                    compType =
+                      lam "k" \k -> pure tbB <@> i <@> j <@> spreadFill <@> i <@> j <@> a <@> ineg k
+                    phi = foldl imax primIZero [i, ineg i, j, ineg j]
+                    faces = _
+                    -- ^ FIXME: there is a comp example in TypeChecking.Primitive.Cubical.transpSysTel'
+                    -- .. but how does one even write case lambdas?
+                    sqa = spread <@> i <@> j
+                    lb = lam "j" $ \j' -> l <@> j' <@> (sqa <@> primIZero <@> j')
+                    rb = lam "j" $ \j' -> r <@> j' <@> (sqa <@> primIOne  <@> j')
+                    ub = lam "i" $ \i' -> u <@> i' <@> (sqa <@> i' <@> primIZero)
+                    db = lam "i" $ \i' -> d <@> i' <@> (sqa <@> i' <@> primIOne )
+                    b = sqFillB <@> sqa <@> lb <@> rb <@> ub <@> db
+                  in
+                  pure tComp <@> compType <#> phi <@> faces <@> (b <@> i <@> j)
             _ -> nored
         _ -> nored
       where
@@ -139,7 +149,7 @@ primSqFill' = do
 --   let sqFillB = primSqFill <@> pure tbB
 --   primComp <@> (lam "k" \k -> pure tbB <@> i <@> j <@>)
 
-  
+
 
 primUIP' :: TCM PrimitiveImpl
 primUIP' = do
