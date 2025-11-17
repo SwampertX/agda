@@ -5,6 +5,7 @@ module Agda.TypeChecking.Primitive.Cubical
   , module Agda.TypeChecking.Primitive.Cubical.Base
   , module Agda.TypeChecking.Primitive.Cubical.Glue
   , module Agda.TypeChecking.Primitive.Cubical.HCompU
+  , module Agda.TypeChecking.Primitive.Cubical.UIP
   )
   where
 
@@ -52,6 +53,7 @@ import qualified Agda.Utils.BoolSet as BoolSet
 
 import Agda.TypeChecking.Primitive.Cubical.HCompU
 import Agda.TypeChecking.Primitive.Cubical.Glue
+import Agda.TypeChecking.Primitive.Cubical.UIP
 import Agda.TypeChecking.Primitive.Cubical.Base
 import Agda.TypeChecking.Monad.Base (Reduced(NoReduction))
 
@@ -252,7 +254,7 @@ doPiKanOp cmd t ab = do
           la <- open . f $ Level lx
           bA <- open . f . unEl . unDom $ x
           pure $ Just $ \iOrNot phi a0 ->
-            pure tTrans <#> lam "j" (\j -> la <@> iOrNot j)
+            (pure tTrans) <#> lam "j" (\j -> la <@> iOrNot j)
               <@> lam "j" (\ j -> bA <@> iOrNot j)
               <@> phi
               <@> a0
@@ -831,176 +833,61 @@ primFaceForall' = do
         [(m, [_])] | null m -> Nothing
         _ -> Just disjuncts
 
-primUIP' :: TCM PrimitiveImpl
-primUIP' = do
-  requireCubical CUip
-  t <-  runNamesT [] $
-        hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
-        hPi' "A" (sort . tmSort <$> la) $ \ bA ->
-        nPi' "x" (el' la bA) $ \ x ->
-        nPi' "y" (el' la bA) $ \ y ->
-        let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
-        nPi' "p" (el' la $ pathxy) $ \ p ->
-        nPi' "q" (el' la $ pathxy) $ \ q ->
-        el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
-  return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
-      return $ NoReduction []
+-- primUIP' :: TCM PrimitiveImpl
+-- primUIP' = do
+--   requireCubical CUip
+--   t <-  runNamesT [] $
+--         hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
+--         hPi' "A" (sort . tmSort <$> la) $ \ bA ->
+--         nPi' "x" (el' la bA) $ \ x ->
+--         nPi' "y" (el' la bA) $ \ y ->
+--         let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
+--         nPi' "p" (el' la $ pathxy) $ \ p ->
+--         nPi' "q" (el' la $ pathxy) $ \ q ->
+--         el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
+--   return $ PrimImpl t $
+--     PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
+--       return $ NoReduction []
 
-primSqFill' :: TCM PrimitiveImpl
-primSqFill' = do
-  requireCubical CUip
-  t <-  runNamesT [] $
-        hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
-        nPi' "A" (nPi' "i" primIntervalType $ \ i ->
-                  nPi' "j" primIntervalType $ \ j ->
-                    (sort . tmSort <$> la)) $ \ bA ->
+-- primSqFill' :: TCM PrimitiveImpl
+-- primSqFill' = do
+--   requireCubical CUip
+--   t <-  runNamesT [] $
+--         hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
+--         nPi' "A" (nPi' "i" primIntervalType $ \ i ->
+--                   nPi' "j" primIntervalType $ \ j ->
+--                     (sort . tmSort <$> la)) $ \ bA ->
 
-        let (i0, i1) = (primIZero, primIOne) in
-        let bAij i j = bA <@> i <@> j in
-        let pathP l f p q = cl primPathP <#> l <@> f <@> p <@> q in
+--         let (i0, i1) = (primIZero, primIOne) in
+--         let bAij i j = bA <@> i <@> j in
+--         let pathP l f p q = cl primPathP <#> l <@> f <@> p <@> q in
 
-        hPi' "a00" (el' la $ bAij i0 i0) $ \ a00 ->
-        hPi' "a01" (el' la $ bAij i0 i1) $ \ a01 ->
-        nPi' "a0_" (el' la $ pathP la (lam "j" $ \j -> bAij i0 j) a00 a01) $ \ a0_ ->
+--         hPi' "a00" (el' la $ bAij i0 i0) $ \ a00 ->
+--         hPi' "a01" (el' la $ bAij i0 i1) $ \ a01 ->
+--         nPi' "a0_" (el' la $ pathP la (lam "j" $ \j -> bAij i0 j) a00 a01) $ \ a0_ ->
 
-        hPi' "a10" (el' la $ bAij i1 i0) $ \ a10 ->
-        hPi' "a11" (el' la $ bAij i1 i1) $ \ a11 ->
-        nPi' "a1_" (el' la $ pathP la (lam "j" $ \j -> bAij i1 j) a10 a11) $ \ a1_ ->
+--         hPi' "a10" (el' la $ bAij i1 i0) $ \ a10 ->
+--         hPi' "a11" (el' la $ bAij i1 i1) $ \ a11 ->
+--         nPi' "a1_" (el' la $ pathP la (lam "j" $ \j -> bAij i1 j) a10 a11) $ \ a1_ ->
 
-        nPi' "a_0" (el' la $ pathP la (lam "j" $ \j -> bAij j i0) a00 a10) $ \ a_0 ->
-        nPi' "a_1" (el' la $ pathP la (lam "j" $ \j -> bAij j i1) a01 a11) $ \ a_1 ->
+--         nPi' "a_0" (el' la $ pathP la (lam "j" $ \j -> bAij j i0) a00 a10) $ \ a_0 ->
+--         nPi' "a_1" (el' la $ pathP la (lam "j" $ \j -> bAij j i1) a01 a11) $ \ a_1 ->
 
-        el' la $ pathP la
-          (lam "i" $ \i -> pathP la (lam "j" $ \j -> bAij i j) (a_0 <@> i) (a_1 <@> i))
-          a0_ a1_
+--         el' la $ pathP la
+--           (lam "i" $ \i -> pathP la (lam "j" $ \j -> bAij i j) (a_0 <@> i) (a_1 <@> i))
+--           a0_ a1_
 
-  return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 10 [] $ \ts _nelims ->
-      -- given ts, the list of terms applied to UIP,
-      -- and the number of eliminations (YJ: copattern? where are the actual eliminations stored?)
-      -- what if we get fewer than 10 arguments? 
-      case ts of
-        [a, bA] : rest -> do
-          sbA <- reduceB' bA
-          t <- case unArg <$> ignoreBlocking sbA of
-            IsFam (Lam _ t) -> Just . fmap IsFam <$> reduceB' (absBody t)
-            IsFam _         -> pure Nothing
-            IsNot t         -> pure . Just . fmap IsNot $ (t <$ sbA)
-
-          case t of
-            -- If we don't have a grasp of the Kan operations then at least we
-            -- can reuse the work we did for reducing the type later.
-            Nothing -> fallback' (famThing <$> sbA)
-            Just st  -> do
-              -- Similarly, if we're stuck for another reason, we can reuse
-              -- the work for reducing the family.
-              let
-                fallback = fallback' (fmap famThing $ st *> sbA)
-                t = ignoreBlocking st
-                operation = case cmd of
-                  DoTransp -> TranspOp { kanOpCofib = sphi, kanOpBase = u0 }
-                  DoHComp -> HCompOp
-                    { kanOpCofib = sphi, kanOpSides = fromMaybe __IMPOSSIBLE__ u, kanOpBase = u0 }
-
-              mHComp <- getPrimitiveName' builtinHComp
-              mGlue <- getPrimitiveName' builtinGlue
-              pathV <- pathView'
-
-              -- By cases on the family, determine what Kan operation we defer
-              -- to:
-              case famThing t of
-                -- Metavariables are stuck
-                MetaV m _ -> fallback' (fmap famThing $ blocked_ m *> sbA)
-
-                -- TODO: absName t instead of "i"
-                Pi a b
-                  -- For Π types, we prefer to keep the Kan operations around,
-                  -- so only actually reduce if we applied them to a nonzero
-                  -- positive of eliminations
-                  | nelims > 0 -> maybe fallback redReturn =<< doPiKanOp operation "i" ((a, b) <$ t)
-                  | otherwise -> fallback
-
-                -- For Type, we have two possibilities:
-                Sort (Type l)
-                  -- transp (λ i → Type _) φ is always the identity function.
-                  | DoTransp <- cmd -> redReturn $ unArg u0
-                  -- hcomp {Type} is actually a normal form! This is the
-                  -- "HCompU" optimisation; We do not use Glue for hcomp in
-                  -- the universe.
-                  | DoHComp <- cmd -> fallback
-
-                -- Glue types have their own implementation of Kan operations
-                -- which are implemented in a different module:
-                Def q [Apply la, Apply lb, Apply bA, Apply phi', Apply bT, Apply e] | Just q == mGlue -> do
-                  maybe fallback redReturn =<< doGlueKanOp
-                    operation ((la, lb, bA, phi', bT, e) <$ t) Head
-
-                -- Formal homogeneous compositions in the universe: Our family
-                -- is @hcomp {A = Type l}@, so we defer to the implementation
-                -- of Kan operations for HCompU implemented above.
-                Def q [Apply _, Apply s, Apply phi', Apply bT, Apply bA]
-                  | Just q == mHComp, Sort (Type la) <- unArg s  -> do
-                  maybe fallback redReturn =<< doHCompUKanOp
-                    operation ((Level la <$ s, phi', bT, bA) <$ t) Head
-
-                -- PathP types have the same optimisation as for Pi types:
-                -- Only compute the Kan operation if there's >0 eliminations.
-                d | PathType _ _ _ bA x y <- pathV (El __DUMMY_SORT__ d) -> do
-                  if nelims > 0 then doPathPKanOp operation l ((bA, x, y) <$ t) else fallback
-
-                Def q es -> do
-                  info <- getConstInfo q
-                  let
-                    lam_i = Lam defaultArgInfo . Abs "i"
-
-                    -- When should Kan operations on a record value reduce?
-                    doR r@Record{recEtaEquality' = eta} = case theEtaEquality eta of
-                      -- If it's a no-eta, pattern-matching record, then the
-                      -- Kan operations behave as they do for data types; Only
-                      -- reduce when the base is a constructor
-                      NoEta PatternMatching -> case unArg u0 of
-                        Con{} -> True
-                        _ -> False
-                      -- For every other case, we can reduce into a value
-                      -- defined by copatterns; However, this would expose the
-                      -- internal name of transp/hcomp when printed, so hold
-                      -- off until there are projections.
-                      _ -> nelims > 0
-                    doR _ = False
-
-                  -- Record and data types have their own implementations of
-                  -- the Kan operations, which get generated as part of their
-                  -- definition.
-                  case theDef info of
-                    r@Record{recComp = kit, recEtaEquality' = eta}
-                      | doR r, Just as <- allApplyElims es, DoTransp <- cmd, Just transpR <- nameOfTransp kit ->
-                        -- Optimisation: If the record has no parameters then we can ditch the transport.
-                        if recPars r == 0
-                          then redReturn $ unArg u0
-                          else redReturn $ Def transpR [] `apply` (map (fmap lam_i) as ++ [ignoreBlocking sphi, u0])
-
-                      -- Records know how to hcomp themselves:
-                      | doR r, Just as <- allApplyElims es, DoHComp <- cmd, Just hCompR <- nameOfHComp kit ->
-                        redReturn $ Def hCompR [] `apply` (as ++ [ignoreBlocking sphi, fromMaybe __IMPOSSIBLE__ u,u0])
-
-                      -- If this is a record with no fields, then compData
-                      -- will know what to do with it:
-                      | Just as <- allApplyElims es, [] <- recFields r -> compData Nothing False (recPars r) cmd l (as <$ t) sbA sphi u u0
-
-                    -- For data types, if this data type is indexed and/or a
-                    -- higher inductive type, then hcomp is normal; But
-                    -- compData knows what to do for the general cases.
-                    Datatype{dataPars = pars, dataIxs = ixs, dataPathCons = pcons, dataTransp = mtrD}
-                      | and [null pcons && ixs == 0 | DoHComp  <- [cmd]], Just as <- allApplyElims es ->
-                        compData mtrD (not (null pcons) || ixs > 0) (pars + ixs) cmd l (as <$ t) sbA sphi u u0
-
-                    -- Is this an axiom with constrant transport? Then. Well. Transport is constant.
-                    Axiom constTransp | constTransp, [] <- es, DoTransp <- cmd -> redReturn $ unArg u0
-
-                    _          -> fallback
-
-                _ -> fallback
+--   return $ PrimImpl t $
+--     PrimFun __IMPOSSIBLE__ 10 [] $ \ts _nelims ->
+--       case ts of
+--         [a, bA] -> do
+--           sbA <- reduceB' bA
+--           case unArg $ ignoreBlocking sbA of
+--             t@(Pi bDom bCodom) -> redReturn t
+--             _ -> nored
+--         _ -> nored
+--       where
+--         nored = return $ NoReduction []
 
 -- | Tries to @primTransp@ a whole telescope of arguments, following the rule for Σ types.
 --   If a type in the telescope does not support transp, @transpTel@ throws it as an exception.
