@@ -13,43 +13,64 @@ import Agda.TypeChecking.Substitute
 
 import Agda.Utils.Impossible
 
-ifThenElse :: ReduceM Term
+ifThenElse :: HasBuiltins m => m Term
 ifThenElse = runNamesT [] $ do
   lam "i" $ \ i ->
     lam "j" $ \ j ->
     lam "k" $ \ k -> (imax (imin k (imax (ineg i) j)) (imin j (imax i k)))
 
-transport :: ReduceM Term -> ReduceM Term -> ReduceM Term
+transport :: HasBuiltins m => m Term -> m Term -> m Term
 transport p a = do
   tTrans <- getTerm "transp for UIP" builtinTrans
   iz     <- getTerm "izero for UIP" builtinIZero
-  pure tTrans <@> p <@> pure iz <@> a
+  return tTrans <@> p <@> return iz <@> a
 
-spread :: ReduceM Term
+-- spread : (i j : I) → (a : A i j) → (i' j' : I) → A i' j'
+-- This is done by "transport"-ing a,
+-- since we could not state the transp cofibration when (i = i' ∧ j = j').
+spread :: HasBuiltins m => m Term
 spread = runNamesT [] $ do
-  lam "i" $ \i ->
+  lam "bA" $ \bA ->
+    lam "i" $ \i ->
     lam "j" $ \j ->
     lam "a" $ \a -> 
     lam "i'" $ \i' ->
     lam "j'" $ \j' -> do
-      p <- lam "k" \k -> A coe
-      return $ transport 
+      let
+        iCoe k = ifThenElse <@> k <@> i <@> i'
+        jCoe k = ifThenElse <@> k <@> j <@> j'
+      transport (lam "k" \k -> bA <@> iCoe k <@> jCoe k) a
 
-primUIP' :: TCM PrimitiveImpl
-primUIP' = do
-  requireCubical CUip
-  t <-  runNamesT [] $
-        hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
-        hPi' "A" (sort . tmSort <$> la) $ \ bA ->
-        nPi' "x" (el' la bA) $ \ x ->
-        nPi' "y" (el' la bA) $ \ y ->
-        let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
-        nPi' "p" (el' la $ pathxy) $ \ p ->
-        nPi' "q" (el' la $ pathxy) $ \ q ->
-        el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
-  return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
-      return $ NoReduction []
+-- transportFiller : {l A B} (p : A ≡ B) → (a : A) → a ≡ transport p a
+-- transportFiller p a i = transp (λ j → p (i ∧ j)) (~ i) a
+transportFiller :: HasBuiltins m => m Term
+transportFiller = runNamesT [] $ do
+  lam "lA" $ \lA ->
+    lam "bA" $ \bA ->
+    lam "bB" $ \bB ->
+    lam "p"  $ \p ->
+    lam "a"  $ \a ->
+    lam "i"  $ \i -> do
+      tTrans <- getTerm "transp for UIP" builtinTrans
+      return tTrans 
+        <@> (lam "j" \j -> p <@> (imin i j))
+        <@> ineg i
+        <@> a
+    
+-- ≡spread : (i j : I) (a : A i j) → a ≡ spread i j a i j
+-- ≡spread i j a = transport-filler (λ k → A (if k then i else i end) (if k then j else j end)) a
+spreadFill :: HasBuiltins m => m Term
+spreadFill = runNamesT [] $ do
+  lam "bA" $ \bA ->
+    lam "i" $ \i ->
+    lam "j" $ \j ->
+    lam "a" $ \a -> 
+    lam "i'" $ \i' ->
+    lam "j'" $ \j' -> do
+      let
+        iCoe k = ifThenElse <@> k <@> i <@> i'
+        jCoe k = ifThenElse <@> k <@> j <@> j'
+      transportFiller <@> (lam "k" \k -> bA <@> iCoe k <@> jCoe k) <@> a
 
 primSqFill' :: TCM PrimitiveImpl
 primSqFill' = do
@@ -82,11 +103,56 @@ primSqFill' = do
   return $ PrimImpl t $
     PrimFun __IMPOSSIBLE__ 10 [] $ \ts _nelims ->
       case ts of
-        [a, bA] -> do
+        [a, bA, ul, dl, l, ur, dr, r, u, d] -> do
           sbA <- reduceB' bA
           case unArg $ ignoreBlocking sbA of
-            t@(Pi bDom bCodom) -> redReturn t
+            -- SqPFillPiAB {ul} {dl} l {ur} {dr} r u d i j a =
+            --   comp (λ k → B i j (≡spread i j a (~ k))) {φ = i ∨ ~ i ∨ j ∨ ~ j}
+            --   (λ where
+            --       k (i = i0) → l j (≡spread i j a (~ k))
+            --       k (i = i1) → r j (≡spread i j a (~ k))
+            --       k (j = i0) → u i (≡spread i j a (~ k))
+            --       k (j = i1) → d i (≡spread i j a (~ k))) (b i j)
+            t@(Pi bDom bCodom) -> do
+              tComp <- getTerm "comp for UIP" builtinComp
+              let
+                tbB = unEl . unAbs $ bCodom
+                sqFillB = primSqFill <@> pure tbB
+                compType =
+                  lam "k" \k -> pure tbB <@> i <@> j <@> spreadFill <@> i <@> j <@> a <@> ineg k
+                phi = foldr (<@>) [i, ineg i, j, ineg j]
+                faces = _ -- FIXME: there is a comp example in TypeChecking.Primitive.Cubical.transpSysTel'
+                bij = _
+              lam "i" $ \i -> lam "j" $ \j ->
+                pure tComp <@> compType <#> phi <@> faces <@> bij
+
             _ -> nored
         _ -> nored
       where
         nored = return $ NoReduction []
+
+-- primSqFillPi :: Dom Type -> Abs Type -> TCM Term
+-- primSqFillPi bA bB = do
+--   -- tSqFill <- getTerm "SqFill" builtinSqFill
+--   -- tComp <- getTerm "SqFill" builtinComp
+--   let tbB = unEl . unAbs $ bB
+--   let sqFillB = primSqFill <@> pure tbB
+--   primComp <@> (lam "k" \k -> pure tbB <@> i <@> j <@>)
+
+  
+
+primUIP' :: TCM PrimitiveImpl
+primUIP' = do
+  requireCubical CUip
+  t <-  runNamesT [] $
+        hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
+        hPi' "A" (sort . tmSort <$> la) $ \ bA ->
+        nPi' "x" (el' la bA) $ \ x ->
+        nPi' "y" (el' la bA) $ \ y ->
+        let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
+        nPi' "p" (el' la $ pathxy) $ \ p ->
+        nPi' "q" (el' la $ pathxy) $ \ q ->
+        el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
+  return $ PrimImpl t $
+    PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
+      return $ NoReduction []
