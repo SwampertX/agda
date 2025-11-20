@@ -164,6 +164,7 @@ getBuiltinName_ x =
 --       Def f [] -> Just f
 --       _        -> Nothing
 
+-- YJ TODO: maybe can use this
 {-# INLINABLE getBuiltin #-}
 getBuiltin :: (HasBuiltins m, MonadTCError m)
            => BuiltinId -> m Term
@@ -370,8 +371,8 @@ prim_unglueU                          = getPrimitiveTerm builtin_unglueU
 primGlue                              = getPrimitiveTerm builtinGlue
 prim_glue                             = getPrimitiveTerm builtin_glue
 prim_unglue                           = getPrimitiveTerm builtin_unglue
-primUIP                               = getPrimitiveTerm builtinUIP
-primSqFill                            = getPrimitiveTerm builtinSqFill
+-- primUIP                               = getPrimitiveTerm builtinUIP
+primSqFill                            = getBuiltin builtinSqFill
 primFaceForall                        = getPrimitiveTerm builtinFaceForall
 primIsOne1                            = getBuiltin builtinIsOne1
 primIsOne2                            = getBuiltin builtinIsOne2

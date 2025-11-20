@@ -215,6 +215,15 @@ coreBuiltins =
                                                                fiber
                                                              ))
                                                               (const $ const $ return ()))
+  , (builtinSqFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                  hPi' "l" (el $ cl primLevel) $ \la ->
+                                                                  (cl tinterval --> cl tinterval --> (sort . tmSort <$> la)) --> el la))
+                                                              (const $ const $ return ()))
+  -- , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+  --                                                 -- {ℓ : Level} (A : I → I → Type ℓ) (B : (i j : I) → A i j → Type ℓ)
+  --                                                 -- (SqPFillB : (a : (i j : I) → A i j) → SqPFill (λ i j → B i j (a i j)))
+
+  -- )))
   , (builtinAgdaSort                         |-> BuiltinData tset
                                                    [ builtinAgdaSortSet, builtinAgdaSortLit
                                                    , builtinAgdaSortProp, builtinAgdaSortPropLit

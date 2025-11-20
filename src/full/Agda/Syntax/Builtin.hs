@@ -90,6 +90,7 @@ data BuiltinId
   | BuiltinEquivFun
   | BuiltinEquivProof
   | BuiltinTranspProof
+  | BuiltinSqFill
   | BuiltinIsOne1
   | BuiltinIsOne2
   | BuiltinIsOneEmpty
@@ -310,6 +311,7 @@ instance IsBuiltin BuiltinId where
     BuiltinEquivFun                          -> "EQUIVFUN"
     BuiltinEquivProof                        -> "EQUIVPROOF"
     BuiltinTranspProof                       -> "TRANSPPROOF"
+    BuiltinSqFill                            -> "SQFILL"
     BuiltinIsOne1                            -> "ISONE1"
     BuiltinIsOne2                            -> "ISONE2"
     BuiltinIsOneEmpty                        -> "ISONEEMPTY"
@@ -527,6 +529,7 @@ builtinNat, builtinSuc, builtinZero, builtinNatPlus, builtinNatMinus,
   builtinSub, builtinSubIn,
   builtinEquiv, builtinEquivFun, builtinEquivProof,
   builtinTranspProof,
+  builtinSqFill,
   builtinSizeUniv, builtinSize, builtinSizeLt,
   builtinSizeSuc, builtinSizeInf, builtinSizeMax,
   builtinInf, builtinSharp, builtinFlat,
@@ -634,6 +637,7 @@ builtinEquiv                             = BuiltinEquiv
 builtinEquivFun                          = BuiltinEquivFun
 builtinEquivProof                        = BuiltinEquivProof
 builtinTranspProof                       = BuiltinTranspProof
+builtinSqFill                            = BuiltinSqFill
 builtinIsOne1                            = BuiltinIsOne1
 builtinIsOne2                            = BuiltinIsOne2
 builtinIsOneEmpty                        = BuiltinIsOneEmpty
@@ -1067,7 +1071,7 @@ instance IsBuiltin PrimitiveId where
 builtinSubOut,
   builtinIMin, builtinIMax, builtinINeg,
   builtinGlue, builtin_glue, builtin_unglue, builtin_glueU, builtin_unglueU,
-  builtinUIP, builtinSqFill,
+  builtinUIP,
   builtinFaceForall, builtinComp, builtinPOr,
   builtinTrans,  builtinHComp, builtinLockUniv
   :: PrimitiveId
@@ -1081,7 +1085,6 @@ builtin_unglue                           = Prim_unglue
 builtin_glueU                            = Prim_glueU
 builtin_unglueU                          = Prim_unglueU
 builtinUIP                               = PrimUIP
-builtinSqFill                            = PrimSqFill
 builtinFaceForall                        = PrimFaceForall
 builtinComp                              = PrimComp
 builtinPOr                               = PrimPOr

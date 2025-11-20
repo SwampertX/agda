@@ -19,27 +19,28 @@ ifThenElse = runNamesT [] $ do
     lam "j" $ \ j ->
     lam "k" $ \ k -> (imax (imin k (imax (ineg i) j)) (imin j (imax i k)))
 
-transport :: HasBuiltins m => m Term -> m Term -> m Term
-transport p a = do
+transport :: HasBuiltins m => m Term -> m Term -> m Term -> m Term
+transport l p a = do
   tTrans <- getTerm "transp for UIP" builtinTrans
   iz     <- getTerm "izero for UIP" builtinIZero
-  return tTrans <@> p <@> return iz <@> a
+  return tTrans <#> l <@> p <@> return iz <@> a
 
 -- spread : (i j : I) → (a : A i j) → (i' j' : I) → A i' j'
 -- This is done by "transport"-ing a,
 -- since we could not state the transp cofibration when (i = i' ∧ j = j').
 spread :: HasBuiltins m => m Term
 spread = runNamesT [] $ do
-  lam "bA" $ \bA ->
-    lam "i" $ \i ->
-    lam "j" $ \j ->
-    lam "a" $ \a ->
-    lam "i'" $ \i' ->
-    lam "j'" $ \j' -> do
+  lam "lA"   $ \ lA ->
+    lam "bA" $ \ bA ->
+    lam "i"  $ \ i ->
+    lam "j"  $ \ j ->
+    lam "a"  $ \ a ->
+    lam "i'" $ \ i' ->
+    lam "j'" $ \ j' -> do
       let
         iCoe k = ifThenElse <@> k <@> i <@> i'
         jCoe k = ifThenElse <@> k <@> j <@> j'
-      transport (lam "k" \k -> bA <@> iCoe k <@> jCoe k) a
+      transport lA (lam "k" \k -> bA <@> iCoe k <@> jCoe k) a
 
 -- transportFiller : {l A B} (p : A ≡ B) → (a : A) → a ≡ transport p a
 -- transportFiller p a i = transp (λ j → p (i ∧ j)) (~ i) a
@@ -52,16 +53,14 @@ transportFiller = runNamesT [] $ do
     lam "a"  $ \a ->
     lam "i"  $ \i -> do
       tTrans <- getTerm "transp for UIP" builtinTrans
-      return tTrans
-        <@> (lam "j" \j -> p <@> (imin i j))
-        <@> ineg i
-        <@> a
+      return tTrans <#> lA <@> (lam "j" \j -> p <@> (imin i j)) <@> ineg i <@> a
 
 -- ≡spread : (i j : I) (a : A i j) → a ≡ spread i j a i j
 -- ≡spread i j a = transport-filler (λ k → A (if k then i else i end) (if k then j else j end)) a
 spreadFill :: HasBuiltins m => m Term
 spreadFill = runNamesT [] $ do
-  lam "bA" $ \bA ->
+  lam "lA" $ \lA ->
+    lam "bA" $ \bA ->
     lam "i" $ \i ->
     lam "j" $ \j ->
     lam "a" $ \a ->
@@ -70,7 +69,7 @@ spreadFill = runNamesT [] $ do
       let
         iCoe k = ifThenElse <@> k <@> i <@> i'
         jCoe k = ifThenElse <@> k <@> j <@> j'
-      transportFiller <@> (lam "k" \k -> bA <@> iCoe k <@> jCoe k) <@> a
+      transportFiller <#> lA <@> (lam "k" \k -> bA <@> iCoe k <@> jCoe k) <@> a
 
 primSqFill' :: TCM PrimitiveImpl
 primSqFill' = do

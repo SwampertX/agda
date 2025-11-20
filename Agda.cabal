@@ -121,6 +121,7 @@ extra-source-files:
     src/data/lib/prim/Agda/Builtin/Cubical/Glue.agda
     src/data/lib/prim/Agda/Builtin/Cubical/Equiv.agda
     src/data/lib/prim/Agda/Builtin/Cubical/HCompU.agda
+    src/data/lib/prim/Agda/Builtin/Cubical/SqFill.agda
     src/data/lib/prim/Agda/Builtin/Equality.agda
     src/data/lib/prim/Agda/Builtin/Equality/Erase.agda
     src/data/lib/prim/Agda/Builtin/Equality/Rewrite.agda
@@ -179,6 +180,7 @@ data-files:
     lib/prim/Agda/Builtin/Cubical/Glue.agda
     lib/prim/Agda/Builtin/Cubical/Equiv.agda
     lib/prim/Agda/Builtin/Cubical/HCompU.agda
+    lib/prim/Agda/Builtin/Cubical/SqFill.agda
     lib/prim/Agda/Builtin/Equality.agda
     lib/prim/Agda/Builtin/Equality/Erase.agda
     lib/prim/Agda/Builtin/Equality/Rewrite.agda
@@ -798,6 +800,7 @@ library
       Agda.TypeChecking.Primitive.Cubical.Base
       Agda.TypeChecking.Primitive.Cubical.Glue
       Agda.TypeChecking.Primitive.Cubical.HCompU
+      Agda.TypeChecking.Primitive.Cubical.UIP
       Agda.TypeChecking.ProjectionLike
       Agda.TypeChecking.Quote
       Agda.TypeChecking.ReconstructParameters
