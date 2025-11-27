@@ -64,7 +64,7 @@ primPOr = do
           hPi' "a" (els (pure LevelUniv) (cl primLevel))    $ \ a  ->
           nPi' "i" primIntervalType $ \ i  ->
           nPi' "j" primIntervalType $ \ j  ->
-          hPi' "A" (pPi' "o" (imax i j) $ \o -> el' (cl primLevelSuc <@> a) (Sort . tmSort <$> a)) $ \ bA ->
+          hPi' "A" (pPi' "o" (imax i j) $ \ o -> el' (cl primLevelSuc <@> a) (Sort . tmSort <$> a)) $ \ bA ->
           ((pPi' "i1" i $ \ i1 -> el' a $ bA <..> (cl primIsOne1 <@> i <@> j <@> i1))) -->
           ((pPi' "j1" j $ \ j1 -> el' a $ bA <..> (cl primIsOne2 <@> i <@> j <@> j1))) -->
           pPi' "o" (imax i j) (\ o -> el' a $ bA <..> o)
@@ -190,7 +190,7 @@ mkComp s = do
 
   pure $ \la bA phi u u0 ->
     pure tHComp <#> (la <@> pure io) <#> (bA <@> pure io) <#> phi
-                <@> lam "i" (\i -> ilam "o" $ \o ->
+                <@> lam "i" (\i -> ilam "o" $ \ o ->
                         forward la bA i (u <@> i <..> o))
                 <@> forward la bA (pure iz) u0
 
@@ -254,7 +254,7 @@ doPiKanOp cmd t ab = do
           la <- open . f $ Level lx
           bA <- open . f . unEl . unDom $ x
           pure $ Just $ \iOrNot phi a0 ->
-            (pure tTrans) <#> lam "j" (\j -> la <@> iOrNot j)
+            pure tTrans <#> lam "j" (\j -> la <@> iOrNot j)
               <@> lam "j" (\ j -> bA <@> iOrNot j)
               <@> phi
               <@> a0

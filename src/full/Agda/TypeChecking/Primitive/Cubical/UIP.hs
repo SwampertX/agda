@@ -112,29 +112,29 @@ primSqFill' = do
             --       k (i = i1) → r j (≡spread i j a (~ k))
             --       k (j = i0) → u i (≡spread i j a (~ k))
             --       k (j = i1) → d i (≡spread i j a (~ k))) (b i j)
-            t@(Pi bDom bCodom) -> runNamesT [] $ do
-              tComp <- getTerm "comp for UIP" builtinComp
-              -- the term is a huge comp.
-              let
-                tbB     = unEl . unAbs $ bCodom
-                sqFillB = primSqFill <@> pure tbB
-              lam "i" $ \i ->
-                lam "j" $ \j ->
-                  let
-                    compType =
-                      lam "k" \k -> pure tbB <@> i <@> j <@> spreadFill <@> i <@> j <@> a <@> ineg k
-                    phi = foldl imax primIZero [i, ineg i, j, ineg j]
-                    faces = _
-                    -- ^ FIXME: there is a comp example in TypeChecking.Primitive.Cubical.transpSysTel'
-                    -- .. but how does one even write case lambdas?
-                    sqa = spread <@> i <@> j
-                    lb = lam "j" $ \j' -> l <@> j' <@> (sqa <@> primIZero <@> j')
-                    rb = lam "j" $ \j' -> r <@> j' <@> (sqa <@> primIOne  <@> j')
-                    ub = lam "i" $ \i' -> u <@> i' <@> (sqa <@> i' <@> primIZero)
-                    db = lam "i" $ \i' -> d <@> i' <@> (sqa <@> i' <@> primIOne )
-                    b = sqFillB <@> sqa <@> lb <@> rb <@> ub <@> db
-                  in
-                  pure tComp <@> compType <#> phi <@> faces <@> (b <@> i <@> j)
+            -- t@(Pi bDom bCodom) -> runNamesT [] $ do
+            --   tComp <- getTerm "comp for UIP" builtinComp
+            --   -- the term is a huge comp.
+            --   let
+            --     tbB     = unEl . unAbs $ bCodom
+            --     sqFillB = primSqFill <@> pure tbB
+            --   lam "i" $ \i ->
+            --     lam "j" $ \j ->
+            --       let
+            --         compType =
+            --           lam "k" \k -> pure tbB <@> i <@> j <@> spreadFill <@> i <@> j <@> a <@> ineg k
+            --         phi = foldl imax primIZero [i, ineg i, j, ineg j]
+            --         faces = _
+            --         -- ^ FIXME: there is a comp example in TypeChecking.Primitive.Cubical.transpSysTel'
+            --         -- .. but how does one even write case lambdas?
+            --         sqa = spread <@> i <@> j
+            --         lb = lam "j" $ \j' -> l <@> j' <@> (sqa <@> primIZero <@> j')
+            --         rb = lam "j" $ \j' -> r <@> j' <@> (sqa <@> primIOne  <@> j')
+            --         ub = lam "i" $ \i' -> u <@> i' <@> (sqa <@> i' <@> primIZero)
+            --         db = lam "i" $ \i' -> d <@> i' <@> (sqa <@> i' <@> primIOne )
+            --         b = sqFillB <@> sqa <@> lb <@> rb <@> ub <@> db
+            --       in
+            --       pure tComp <@> compType <#> phi <@> faces <@> (b <@> i <@> j)
             _ -> nored
         _ -> nored
       where

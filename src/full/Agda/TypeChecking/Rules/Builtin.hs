@@ -216,14 +216,34 @@ coreBuiltins =
                                                              ))
                                                               (const $ const $ return ()))
   , (builtinSqFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                  hPi' "l" (el $ cl primLevel) $ \la ->
-                                                                  (cl tinterval --> cl tinterval --> (sort . tmSort <$> la)) --> el la))
-                                                              (const $ const $ return ()))
-  -- , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-  --                                                 -- {ℓ : Level} (A : I → I → Type ℓ) (B : (i j : I) → A i j → Type ℓ)
-  --                                                 -- (SqPFillB : (a : (i j : I) → A i j) → SqPFill (λ i j → B i j (a i j)))
+                                                                  (cl tinterval --> cl tinterval --> tset) --> tset))
+                                                                (const $ const $ return ())) -- TODO: Should we restrict that SqFill actually is SqFill?
 
-  -- )))
+  , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                  let sqFill = getBuiltin builtinSqFill in
+                                                                  let aij_type bA = nPi' "i" (cl tinterval) $ \i ->
+                                                                                 nPi' "j" (cl tinterval) $ \j ->
+                                                                                  el (bA <@> i <@> j) in
+                                                                  let bija_type bB a = lam "i" \ i ->
+                                                                                       lam "j" \ j ->
+                                                                                        bB <@> i <@> j <@> (a <@> i <@> j) in
+                                                                  let piab bA bB     = lam "i" \ i ->
+                                                                                       lam "j" \ j ->
+                                                                                       unEl <$> nPi' "a" (el $ bA <@> i <@> j) \ a ->
+                                                                                        el $ bB <@> i <@> j <@> a in
+
+                                                                  nPi' "A" (cl tinterval --> cl tinterval --> tset) $ \ bA -> 
+                                                                  nPi' "B" (nPi' "i" (cl tinterval) $ \i ->
+                                                                            nPi' "j" (cl tinterval) $ \j ->
+                                                                            (el (bA <@> i <@> j)) -->
+                                                                            tset)                                   $ \ bB -> 
+                                                                  (nPi' "a" (aij_type bA) $ \ a -> el (sqFill <@> bija_type bB a)) --> -- SqFillB
+                                                                  (el $ sqFill <@> (piab bA bB)))) -- SqFill ΠA.B
+                                                                (const $ const $ return ()))
+                                                  -- {ℓ : Level} (A : I → I → Type ℓ) (B : (i j : I) → A i j → Type ℓ)
+                                                  -- (SqPFillB : (a : (i j : I) → A i j) → SqPFill (λ i j → B i j (a i j)))
+                                                  -- → SqPFill (λ i j (a : A i j) → B i j a)
+
   , (builtinAgdaSort                         |-> BuiltinData tset
                                                    [ builtinAgdaSortSet, builtinAgdaSortLit
                                                    , builtinAgdaSortProp, builtinAgdaSortPropLit
