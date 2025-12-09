@@ -215,34 +215,48 @@ coreBuiltins =
                                                                fiber
                                                              ))
                                                               (const $ const $ return ()))
-  , (builtinSqFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                  (cl tinterval --> cl tinterval --> tset) --> tset))
+
+  , (builtinSqFill                            |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>
+                                                                (tset --> tset))
                                                                 (const $ const $ return ())) -- TODO: Should we restrict that SqFill actually is SqFill?
-
   , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                  let sqFill = getBuiltin builtinSqFill in
-                                                                  let aij_type bA = nPi' "i" (cl tinterval) $ \i ->
-                                                                                 nPi' "j" (cl tinterval) $ \j ->
-                                                                                  el (bA <@> i <@> j) in
-                                                                  let bija_type bB a = lam "i" \ i ->
-                                                                                       lam "j" \ j ->
-                                                                                        bB <@> i <@> j <@> (a <@> i <@> j) in
-                                                                  let piab bA bB     = lam "i" \ i ->
-                                                                                       lam "j" \ j ->
-                                                                                       unEl <$> nPi' "a" (el $ bA <@> i <@> j) \ a ->
-                                                                                        el $ bB <@> i <@> j <@> a in
+                                                                  let tySqFill = getBuiltin builtinSqFill in
+                                                                  let piAB bA bB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a in
 
-                                                                  nPi' "A" (cl tinterval --> cl tinterval --> tset) $ \ bA -> 
-                                                                  nPi' "B" (nPi' "i" (cl tinterval) $ \i ->
-                                                                            nPi' "j" (cl tinterval) $ \j ->
-                                                                            (el (bA <@> i <@> j)) -->
-                                                                            tset)                                   $ \ bB -> 
-                                                                  (nPi' "a" (aij_type bA) $ \ a -> el (sqFill <@> bija_type bB a)) --> -- SqFillB
-                                                                  (el $ sqFill <@> (piab bA bB)))) -- SqFill ΠA.B
+                                                                  nPi' "A" tset $ \ bA -> 
+                                                                  nPi' "B" ((el bA) --> tset) $ \ bB -> 
+                                                                  (nPi' "a" (el bA) $ \ a -> el (tySqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
+                                                                  (el $ tySqFill <@> piAB bA bB))) -- SqFill ΠA.B
                                                                 (const $ const $ return ()))
-                                                  -- {ℓ : Level} (A : I → I → Type ℓ) (B : (i j : I) → A i j → Type ℓ)
-                                                  -- (SqPFillB : (a : (i j : I) → A i j) → SqPFill (λ i j → B i j (a i j)))
-                                                  -- → SqPFill (λ i j (a : A i j) → B i j a)
+
+  -- , (builtinSqPFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>
+  --                                                               ((tinterval --> tinterval --> tset) --> tset))
+  --                                                               (const $ const $ return ())) -- TODO: Should we restrict that SqPFill actually is SqPFill?
+
+  -- , (builtinSqPFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+  --                                                                 let sqPFill = getBuiltin builtinSqPFill in
+  --                                                                 let aij_type bA = nPi' "i" (cl tinterval) $ \i ->
+  --                                                                                nPi' "j" (cl tinterval) $ \j ->
+  --                                                                                 el (bA <@> i <@> j) in
+  --                                                                 let bija_type bB a = lam "i" \ i ->
+  --                                                                                      lam "j" \ j ->
+  --                                                                                       bB <@> i <@> j <@> (a <@> i <@> j) in
+  --                                                                 let piab bA bB     = lam "i" \ i ->
+  --                                                                                      lam "j" \ j ->
+  --                                                                                      unEl <$> nPi' "a" (el $ bA <@> i <@> j) \ a ->
+  --                                                                                       el $ bB <@> i <@> j <@> a in
+
+  --                                                                 nPi' "A" (cl tinterval --> cl tinterval --> tset) $ \ bA -> 
+  --                                                                 nPi' "B" (nPi' "i" (cl tinterval) $ \i ->
+  --                                                                           nPi' "j" (cl tinterval) $ \j ->
+  --                                                                           (el (bA <@> i <@> j)) -->
+  --                                                                           tset)                                   $ \ bB -> 
+  --                                                                 (nPi' "a" (aij_type bA) $ \ a -> el (sqPFill <@> bija_type bB a)) --> -- SqPFillB
+  --                                                                 (el $ sqPFill <@> (piab bA bB)))) -- SqPFill ΠA.B
+  --                                                               (const $ const $ return ()))
+  --                                                 -- {ℓ : Level} (A : I → I → Type ℓ) (B : (i j : I) → A i j → Type ℓ)
+  --                                                 -- (SqPFillB : (a : (i j : I) → A i j) → SqPFill (λ i j → B i j (a i j)))
+  --                                                 -- → SqPFill (λ i j (a : A i j) → B i j a)
 
   , (builtinAgdaSort                         |-> BuiltinData tset
                                                    [ builtinAgdaSortSet, builtinAgdaSortLit
