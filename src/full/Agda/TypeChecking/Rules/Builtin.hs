@@ -40,6 +40,7 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
+import Agda.TypeChecking.Pretty
 
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term ( checkExpr , inferExpr )
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Builtin.Coinduction
@@ -220,13 +221,19 @@ coreBuiltins =
                                                                 (tset --> tset))
                                                                 (const $ const $ return ())) -- TODO: Should we restrict that SqFill actually is SqFill?
   , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                  let tySqFill = getBuiltin builtinSqFill in
-                                                                  let piAB bA bB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a in
+                                                                  do
+                                                                    -- unEl or not, the underlying term is a Pi.
+                                                                    let piAB bA bB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a
 
-                                                                  nPi' "A" tset $ \ bA -> 
-                                                                  nPi' "B" ((el bA) --> tset) $ \ bB -> 
-                                                                  (nPi' "a" (el bA) $ \ a -> el (tySqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
-                                                                  (el $ tySqFill <@> piAB bA bB))) -- SqFill ΠA.B
+                                                                    t <- nPi' "A" tset $ \ bA -> 
+                                                                      nPi' "B" ((el bA) --> tset) $ \ bB -> 
+                                                                      ((nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
+                                                                      (el $ primSqFill <@> piAB bA bB))
+                                                                    reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
+                                                                    reportSDoc "cubical.prim.uip" 60 $ text $ show t
+                                                                    return t
+                                                                  )) -- SqFill ΠA.B
+
                                                                 (const $ const $ return ()))
 
   -- , (builtinSqPFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>

@@ -984,7 +984,7 @@ primitiveFunctions = localTCStateSavingWarnings <$> Map.fromListWith __IMPOSSIBL
   , Prim_glueU            |-> prim_glueU'
   , Prim_unglueU          |-> prim_unglueU'
   , Prim_sqFill           |-> prim_sqFill'
-  , Prim_sqPFill          |-> prim_sqPFill'
+  -- , Prim_sqPFill          |-> prim_sqPFill'
   , PrimLockUniv          |-> primLockUniv'
   ]
   where

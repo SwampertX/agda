@@ -1,5 +1,5 @@
 module Agda.TypeChecking.Primitive.Cubical.UIP (
-  prim_sqPFill', prim_uip',
+  -- prim_sqPFill', prim_uip',
   prim_sqFill'
   ) where
 
@@ -26,8 +26,8 @@ prim_sqFill' = do
   requireCubical CUip
   t <- runNamesT [] $
        nPi' "A" tset $ \ bA ->
-       let tySqFill = getTerm "for SqFill" builtinSqFill in
-       el $ tySqFill <@> bA
+      --  let tySqFill = getTerm "for SqFill" builtinSqFill in
+       el $ primSqFill <@> bA
 
   return $ PrimImpl t $
     PrimFun __IMPOSSIBLE__ 9 [] $ \ts _nelims -> do
@@ -39,44 +39,42 @@ prim_sqFill' = do
           reportSDoc "cubical.prim.uip" 30 $ (text "reduced type") <+> prettyTCM sbC
           case unArg $ ignoreBlocking sbC of
             Pi aDom bAbs -> do
-              reportSDoc "cubical.prim.uip" 20 "we are in SqFillPi"
+              -- reportSDoc "cubical.prim.uip" 20 "we are in SqFillPi"
               tySqFill <- getTerm "for SqFillPi" builtinSqFill
+              tmSqFill <- getTerm "for SqFillPi" builtin_sqFill
               sqFillPi <- getTerm "for SqFillPi" builtinSqFillPi
-              -- A -> B -> SqPFill B -> SqPFill (A -> B), but dependent
+              -- reportSDoc "cubical.prim.uip" 40 $ prettyTCM sqFillPi
+              -- A -> B -> SqFill B -> SqFill (A -> B), but dependent
               let bA = pure $ unEl (unDom aDom)
               let tLam = Lam defaultArgInfo
               let bB = pure . tLam $ unEl <$> bAbs -- λ a. B a 
-              reportSDoc "cubical.prim.uip" 60 $ prettyTCM bAbs
-              reportSDoc "cubical.prim.uip" 70 $ text (show bAbs)
-              reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ unEl <$> bAbs
-              reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ unEl <$> bAbs -- λ a. B a 
-              let sqFillB = pure . tLam $ apply1 tySqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
-              reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
-              reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
-              reportSDoc "cubical.prim.uip" 60 "going to apply A, B, sqFill B to SqFillPi"
-              ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB 
+              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM bAbs
+              -- reportSDoc "cubical.prim.uip" 70 $ text (show bAbs)
+              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ unEl <$> bAbs
+              -- reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ unEl <$> bAbs -- λ a. B a 
+              let sqFillB = pure . tLam $ apply1 tmSqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
+              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
+              -- reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
+              -- reportSDoc "cubical.prim.uip" 60 "going to apply A, B, sqFill B to SqFillPi"
+              ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB -- maybe this shouldn't be a type
               reportSDoc "cubical.prim.uip" 40 "done applying the types to SqFillPi"
               reportSDoc "cubical.prim.uip" 40 $ "before reduction:" <+> prettyTCM ret
               ret <- reduce' ret
               reportSDoc "cubical.prim.uip" 40 $ "after reduction:" <+> prettyTCM ret
-              -- reportSDoc "cubical.prim.uip" 40 "reducing it"
-              -- ret <- reduce' ret
-              -- reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret
               reportSDoc "cubical.prim.uip" 40 "now applying the rest of the arguments to SqFillPi"
               reportSDoc "cubical.prim.uip" 40 $ foldl (\ a b -> a <+> ", " <+> b) (text "rest of the arguments are") (map prettyTCM rest)
               let ret' = ret `apply` rest
               reportSDoc "cubical.prim.uip" 40 "done applying all arguments to SqFillPi"
               -- reportSDoc "cubical.prim.uip" 40 "I am changed"
               reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret'
-              reportSDoc "cubical.prim.uip" 70 $ text (show ret')
+              -- reportSDoc "cubical.prim.uip" 70 $ text (show ret')
               reportSDoc "cubical.prim.uip" 40 "done printing the final term"
-              reportSDoc "cubical.prim.uip" 40 "reducing the term gets"
-              ret' <- reduce ret'
-              reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret'
-              reportSDoc "cubical.prim.uip" 70 $ text (show ret')
-              reportSDoc "cubical.prim.uip" 40 "done reducing the term"
+              -- reportSDoc "cubical.prim.uip" 40 "reducing the term gets"
+              -- ret' <- reduce ret'
+              -- reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret'
+              -- reportSDoc "cubical.prim.uip" 70 $ text (show ret')
+              -- reportSDoc "cubical.prim.uip" 40 "done reducing the term"
 
-              -- redReturn $ ret'
               redReturn ret'
             t@(Lam _ _) -> do
               reportSDoc "cubical.prim.uip" 20 $ text (show t)
@@ -87,59 +85,59 @@ prim_sqFill' = do
         nored = return $ NoReduction []
 
 
--- Only for Type.
-prim_sqPFill' :: TCM PrimitiveImpl
-prim_sqPFill' = do
-  requireCubical CUip
-  t <-  runNamesT [] $
-        nPi' "A" (primIntervalType --> primIntervalType --> tset) $ \ bA ->
-        let tySqPFill = getTerm "for SqPFill" builtinSqPFill in
-        el $ tySqPFill <@> bA
+-- -- Only for Type.
+-- prim_sqPFill' :: TCM PrimitiveImpl
+-- prim_sqPFill' = do
+--   requireCubical CUip
+--   t <-  runNamesT [] $
+--         nPi' "A" (primIntervalType --> primIntervalType --> tset) $ \ bA ->
+--         let tySqPFill = getTerm "for SqPFill" builtinSqPFill in
+--         el $ tySqPFill <@> bA
 
-  return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 9 [] $ \ts _nelims -> do
-      case ts of
-        bC:rest -> do
-          reportSDoc "cubical.prim.uip" 30 $ (text "reducing type") <+> prettyTCM bC
-          sbC <- reduceB' bC
-          reportSDoc "cubical.prim.uip" 30 $ (text "reduced type") <+> prettyTCM sbC
-          case unArg $ ignoreBlocking sbC of
-            Pi aDom bAbs -> do
-              reportSDoc "cubical.prim.uip" 20 "we are in SqPFillPi"
-              tySqPFill <- getTerm "for SqPFillPi" builtinSqPFill
-              sqPFillPi <- getTerm "for SqPFillPi" builtinSqPFillPi
-              -- A -> B -> SqPFill B -> SqPFill (A -> B), but dependent
-              let bA = pure $ unEl (unDom aDom)
-              let bB = pure $ unEl (unAbs bAbs)
-              let sqPFillB = pure tySqPFill <@> bB
-              -- ret <- pure sqPFillPi <@> bA <@> bB <@> sqPFillB 
-              ret <- foldl (<@>) (pure sqPFillPi) ([bA, bB, sqPFillB] ++ map (pure . unArg) rest)
-              redReturn ret
-            -- Lam arginfo (NoAbs {unAbs = (Lam arginfo' (NoAbs {unAbs = t}))}) -> do
-            t@(Lam _ _) -> do
-              reportSDoc "cubical.prim.uip" 20 $ text (show t)
-              nored
-            _ -> nored
-        [] -> nored
-      where
-        nored = return $ NoReduction []
+--   return $ PrimImpl t $
+--     PrimFun __IMPOSSIBLE__ 9 [] $ \ts _nelims -> do
+--       case ts of
+--         bC:rest -> do
+--           reportSDoc "cubical.prim.uip" 30 $ (text "reducing type") <+> prettyTCM bC
+--           sbC <- reduceB' bC
+--           reportSDoc "cubical.prim.uip" 30 $ (text "reduced type") <+> prettyTCM sbC
+--           case unArg $ ignoreBlocking sbC of
+--             Pi aDom bAbs -> do
+--               reportSDoc "cubical.prim.uip" 20 "we are in SqPFillPi"
+--               tySqPFill <- getTerm "for SqPFillPi" builtinSqPFill
+--               sqPFillPi <- getTerm "for SqPFillPi" builtinSqPFillPi
+--               -- A -> B -> SqPFill B -> SqPFill (A -> B), but dependent
+--               let bA = pure $ unEl (unDom aDom)
+--               let bB = pure $ unEl (unAbs bAbs)
+--               let sqPFillB = pure tySqPFill <@> bB
+--               -- ret <- pure sqPFillPi <@> bA <@> bB <@> sqPFillB 
+--               ret <- foldl (<@>) (pure sqPFillPi) ([bA, bB, sqPFillB] ++ map (pure . unArg) rest)
+--               redReturn ret
+--             -- Lam arginfo (NoAbs {unAbs = (Lam arginfo' (NoAbs {unAbs = t}))}) -> do
+--             t@(Lam _ _) -> do
+--               reportSDoc "cubical.prim.uip" 20 $ text (show t)
+--               nored
+--             _ -> nored
+--         [] -> nored
+--       where
+--         nored = return $ NoReduction []
 
-prim_uip' :: TCM PrimitiveImpl
-prim_uip' = do
-  requireCubical CUip
-  t <-  runNamesT [] $
-        hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
-        hPi' "A" (sort . tmSort <$> la) $ \ bA ->
-        nPi' "x" (el' la bA) $ \ x ->
-        nPi' "y" (el' la bA) $ \ y ->
-        let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
-        nPi' "p" (el' la $ pathxy) $ \ p ->
-        nPi' "q" (el' la $ pathxy) $ \ q ->
-        el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
-  return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
-      -- YJ TODO: just "alias" to sqPFill.
-      return $ NoReduction []
+-- prim_uip' :: TCM PrimitiveImpl
+-- prim_uip' = do
+--   requireCubical CUip
+--   t <-  runNamesT [] $
+--         hPi' "a" (els (pure LevelUniv) (cl primLevel)) $ \ la ->
+--         hPi' "A" (sort . tmSort <$> la) $ \ bA ->
+--         nPi' "x" (el' la bA) $ \ x ->
+--         nPi' "y" (el' la bA) $ \ y ->
+--         let pathxy = cl primPath <#> la <#> bA <@> x <@> y in
+--         nPi' "p" (el' la $ pathxy) $ \ p ->
+--         nPi' "q" (el' la $ pathxy) $ \ q ->
+--         el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
+--   return $ PrimImpl t $
+--     PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
+--       -- YJ TODO: just "alias" to sqPFill.
+--       return $ NoReduction []
 
 -- ifThenElse :: HasBuiltins m => m Term
 -- ifThenElse = runNamesT [] $ do
