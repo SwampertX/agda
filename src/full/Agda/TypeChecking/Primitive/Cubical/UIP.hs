@@ -30,59 +30,34 @@ prim_sqFill' = do
        el $ primSqFill <@> bA
 
   return $ PrimImpl t $
-    PrimFun __IMPOSSIBLE__ 9 [] $ \ts _nelims -> do
+    -- primfunargoccur is for positivity when my primitive is applied to an inductive type.
+    -- try when applying to an inductive type.
+    PrimFun __IMPOSSIBLE__ 1 [] $ \ts _nelims -> do
       case ts of
         bC:rest -> do
-          reportSDoc "cubical.prim.uip" 30 $ (text "reducing type") <+> prettyTCM bC
-          reportSDoc "cubical.prim.uip" 40 $ foldl (\ a b -> a <+> ", " <+> b) (text "rest of the arguments are") (map prettyTCM rest)
           sbC <- reduceB' bC
-          reportSDoc "cubical.prim.uip" 30 $ (text "reduced type") <+> prettyTCM sbC
           case unArg $ ignoreBlocking sbC of
             Pi aDom bAbs -> do
-              -- reportSDoc "cubical.prim.uip" 20 "we are in SqFillPi"
-              tySqFill <- getTerm "for SqFillPi" builtinSqFill
-              tmSqFill <- getTerm "for SqFillPi" builtin_sqFill
+              tmSqFill <- getTerm "for SqFillPi" builtin_sqFill -- recursive!
               sqFillPi <- getTerm "for SqFillPi" builtinSqFillPi
-              -- reportSDoc "cubical.prim.uip" 40 $ prettyTCM sqFillPi
-              -- A -> B -> SqFill B -> SqFill (A -> B), but dependent
-              let bA = pure $ unEl (unDom aDom)
-              let tLam = Lam defaultArgInfo
-              let bB = pure . tLam $ unEl <$> bAbs -- λ a. B a 
-              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM bAbs
-              -- reportSDoc "cubical.prim.uip" 70 $ text (show bAbs)
-              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ unEl <$> bAbs
-              -- reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ unEl <$> bAbs -- λ a. B a 
-              let sqFillB = pure . tLam $ apply1 tmSqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
-              -- reportSDoc "cubical.prim.uip" 60 $ prettyTCM $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
-              -- reportSDoc "cubical.prim.uip" 70 $ text . show $ tLam $ apply1 tySqFill <$> unEl <$> bAbs
-              -- reportSDoc "cubical.prim.uip" 60 "going to apply A, B, sqFill B to SqFillPi"
-              ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB -- maybe this shouldn't be a type
-              reportSDoc "cubical.prim.uip" 40 "done applying the types to SqFillPi"
-              reportSDoc "cubical.prim.uip" 40 $ "before reduction:" <+> prettyTCM ret
-              ret <- reduce' ret
-              reportSDoc "cubical.prim.uip" 40 $ "after reduction:" <+> prettyTCM ret
-              reportSDoc "cubical.prim.uip" 40 "now applying the rest of the arguments to SqFillPi"
-              reportSDoc "cubical.prim.uip" 40 $ foldl (\ a b -> a <+> ", " <+> b) (text "rest of the arguments are") (map prettyTCM rest)
+              let 
+                bA = pure $ unEl (unDom aDom)
+                tLam = Lam defaultArgInfo
+                bB = pure . tLam $ unEl <$> bAbs -- λ a. B a 
+                sqFillB = pure . tLam $ apply1 tmSqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
+              ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB
               let ret' = ret `apply` rest
-              reportSDoc "cubical.prim.uip" 40 "done applying all arguments to SqFillPi"
-              -- reportSDoc "cubical.prim.uip" 40 "I am changed"
-              reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret'
-              -- reportSDoc "cubical.prim.uip" 70 $ text (show ret')
-              reportSDoc "cubical.prim.uip" 40 "done printing the final term"
-              -- reportSDoc "cubical.prim.uip" 40 "reducing the term gets"
-              -- ret' <- reduce ret'
-              -- reportSDoc "cubical.prim.uip" 40 $ prettyTCM ret'
-              -- reportSDoc "cubical.prim.uip" 70 $ text (show ret')
-              -- reportSDoc "cubical.prim.uip" 40 "done reducing the term"
 
               redReturn ret'
-            t@(Lam _ _) -> do
-              reportSDoc "cubical.prim.uip" 20 $ text (show t)
-              nored
-            _ -> nored
-        [] -> nored
+            -- Def qname elims -> do
+            --   nored
+            t -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "internal representation:" <+> pshow t
+              nored bC
+        [] -> __IMPOSSIBLE__ -- not enough arguments
       where
-        nored = return $ NoReduction []
+        nored t = return $ NoReduction [notReduced t]
 
 
 -- -- Only for Type.

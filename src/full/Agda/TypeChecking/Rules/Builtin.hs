@@ -225,10 +225,11 @@ coreBuiltins =
                                                                     -- unEl or not, the underlying term is a Pi.
                                                                     let piAB bA bB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a
 
+                                                                      -- A -> A -> (A -> A)
                                                                     t <- nPi' "A" tset $ \ bA -> 
                                                                       nPi' "B" ((el bA) --> tset) $ \ bB -> 
-                                                                      ((nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
-                                                                      (el $ primSqFill <@> piAB bA bB))
+                                                                      (nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
+                                                                      (el $ primSqFill <@> piAB bA bB)
                                                                     reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
                                                                     reportSDoc "cubical.prim.uip" 60 $ text $ show t
                                                                     return t
