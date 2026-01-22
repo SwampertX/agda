@@ -69,14 +69,15 @@ requireCubical'
   -> String  -- ^ Why, exactly, do we need Cubical to be enabled?
   -> TCM ()
 requireCubical' wanted reason = do
-  cubical         <- cubicalOption
+  activated       <- cubicalOption
   inErasedContext <- hasQuantity0 <$> viewTC eQuantity
-  -- YJ TODO: refactor this to match on (cubical, wanted)?
-  case cubical of
-    Just CFull | wanted == CFull-> return ()
-    Just CErased | wanted /= CFull || inErasedContext -> return ()
-    Just CWithoutGlue | wanted `elem` [CWithoutGlue, CUip] -> return ()
-    Just CUip | wanted == CUip -> return ()
+  case (wanted, activated) of
+    -- If the wanted variant exactly matches the activated variant, we are good.
+    (wanted      , Just activated) | wanted == activated -> return ()
+    -- If full Cubical is activated in erased context, then wanting CErased is fine.
+    (CErased     , Just CFull    ) | inErasedContext     -> return ()
+    -- Wanting CWithoutGlue is safe as long as any Cubical variant is activated.
+    (CWithoutGlue, Just _        )                       -> return ()
     _ -> typeError $ NeedOptionCubical wanted reason
 
 -- | Our good friend the interval type.
