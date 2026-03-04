@@ -57,12 +57,16 @@ prim_sqFill' = do
               tmSqFill    <- getTerm "for SqFillSigma" builtin_sqFill -- recursive!
               sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
               -- TODO: check la, lb = primLevelZero
+              let sqFillA :: Term = apply tmSqFill [bA]
               sqFillB <- runNamesT [] $ do
                 bB' <- open (unArg bB)
                 sf  <- open tmSqFill
                 lam "a" $ \a -> sf <@> (bB' <@> a)
-              let ret = apply sqFillSigma [bA, bB, defaultArg sqFillB]
+              let ret = apply sqFillSigma [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
               redReturn $ ret `apply` rest
+            Def q _ -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM t
+              nored bC
             t -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM t
               reportSDoc "cubical.prim.uip" 40 $ "internal representation:" <+> pshow t

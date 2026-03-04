@@ -69,7 +69,7 @@ import Agda.Utils.Impossible
 --   propagate the same strategy to subtrees.
 {-# SPECIALIZE applyTermE :: (Empty -> Term -> Elims -> Term) -> Term -> Elims -> Term #-}
 {-# SPECIALIZE applyTermE :: (Empty -> Term -> Elims -> Term) -> BraveTerm -> Elims -> BraveTerm #-}
-applyTermE :: forall t. (Coercible Term t, Apply t, EndoSubst t, Show t)
+applyTermE :: forall t. (Coercible Term t, Apply t, EndoSubst t)
            => (Empty -> Term -> Elims -> Term) -> t -> Elims -> t
 applyTermE err' m [] = m
 applyTermE err' m es = coerce $

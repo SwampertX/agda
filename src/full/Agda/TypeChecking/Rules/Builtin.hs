@@ -239,6 +239,7 @@ coreBuiltins =
   , (builtinSqFillSigma                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
                                                                     let sigmaAB bA bB = primSigma <@> primLevelZero <@> primLevelZero <@> bA <@> bB
                                                                     t <- nPi' "A" tset $ \ bA -> 
+                                                                      nPi' "sqFillA" (el (primSqFill <@> bA)) $ \ sqFillA ->
                                                                       nPi' "B" ((el bA) --> tset) $ \ bB -> 
                                                                       (nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
                                                                       (el $ primSqFill <@> sigmaAB bA bB)

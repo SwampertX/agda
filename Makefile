@@ -110,7 +110,7 @@ STACK_INSTALL_DEP_OPTS = --only-dependencies $(STACK_INSTALL_OPTS)
 CABAL_INSTALL_BIN_OPTS         = -fdebug $(CABAL_INSTALL_BIN_OPTS_NODEBUG)
 CABAL_INSTALL_BIN_OPTS_NODEBUG = -j1 --disable-library-profiling $(CABAL_INSTALL_OPTS)
 STACK_INSTALL_BIN_OPTS         = --flag Agda:debug $(STACK_INSTALL_BIN_OPTS_NODEBUG)
-STACK_INSTALL_BIN_OPTS_NODEBUG = --no-library-profiling $(STACK_INSTALL_OPTS)
+STACK_INSTALL_BIN_OPTS_NODEBUG = -j15 --no-library-profiling $(STACK_INSTALL_OPTS)
 
 CABAL_CONFIGURE_OPTS = $(SLOW_CABAL_INSTALL_OPTS) \
                        --disable-library-profiling \
