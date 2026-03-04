@@ -36,25 +36,38 @@ prim_sqFill' = do
       case ts of
         bC:rest -> do
           sbC <- reduceB' bC
+          mSigma      <- getBuiltinName' builtinSigma
+          let tLam = Lam defaultArgInfo
+
           case unArg $ ignoreBlocking sbC of
+            
             Pi aDom bAbs -> do
               tmSqFill <- getTerm "for SqFillPi" builtin_sqFill -- recursive!
               sqFillPi <- getTerm "for SqFillPi" builtinSqFillPi
               let 
                 bA = pure $ unEl (unDom aDom)
-                tLam = Lam defaultArgInfo
                 bB = pure . tLam $ unEl <$> bAbs -- λ a. B a 
                 sqFillB = pure . tLam $ apply1 tmSqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
               ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB
               let ret' = ret `apply` rest
-
               redReturn ret'
-            -- Def qname elims -> do
-            --   nored
+
+            Def q [Apply la, Apply lb, Apply bA, Apply bB] | Just q == mSigma -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting sigma type" <+> prettyTCM t
+              tmSqFill    <- getTerm "for SqFillSigma" builtin_sqFill -- recursive!
+              sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
+              -- TODO: check la, lb = primLevelZero
+              sqFillB <- runNamesT [] $ do
+                bB' <- open (unArg bB)
+                sf  <- open tmSqFill
+                lam "a" $ \a -> sf <@> (bB' <@> a)
+              let ret = apply sqFillSigma [bA, bB, defaultArg sqFillB]
+              redReturn $ ret `apply` rest
             t -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM t
               reportSDoc "cubical.prim.uip" 40 $ "internal representation:" <+> pshow t
               nored bC
+            
         [] -> __IMPOSSIBLE__ -- not enough arguments
       where
         nored t = return $ NoReduction [notReduced t]

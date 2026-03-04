@@ -92,6 +92,7 @@ data BuiltinId
   | BuiltinTranspProof
   | BuiltinSqFill
   | BuiltinSqFillPi
+  | BuiltinSqFillSigma
   -- | BuiltinSqPFill
   -- | BuiltinSqPFillPi
   | BuiltinIsOne1
@@ -316,6 +317,7 @@ instance IsBuiltin BuiltinId where
     BuiltinTranspProof                       -> "TRANSPPROOF"
     BuiltinSqFill                            -> "SQFILL"
     BuiltinSqFillPi                          -> "SQFILLPI"
+    BuiltinSqFillSigma                       -> "SQFILLSIGMA"
     -- BuiltinSqPFill                           -> "SQPFILL"
     -- BuiltinSqPFillPi                         -> "SQPFILLPI"
     BuiltinIsOne1                            -> "ISONE1"
@@ -535,7 +537,7 @@ builtinNat, builtinSuc, builtinZero, builtinNatPlus, builtinNatMinus,
   builtinSub, builtinSubIn,
   builtinEquiv, builtinEquivFun, builtinEquivProof,
   builtinTranspProof,
-  builtinSqFill, builtinSqFillPi,
+  builtinSqFill, builtinSqFillPi, builtinSqFillSigma,
   -- builtinSqPFill, builtinSqPFillPi,
   builtinSizeUniv, builtinSize, builtinSizeLt,
   builtinSizeSuc, builtinSizeInf, builtinSizeMax,
@@ -646,6 +648,7 @@ builtinEquivProof                        = BuiltinEquivProof
 builtinTranspProof                       = BuiltinTranspProof
 builtinSqFill                            = BuiltinSqFill
 builtinSqFillPi                          = BuiltinSqFillPi
+builtinSqFillSigma                       = BuiltinSqFillSigma
 -- builtinSqPFill                           = BuiltinSqPFill
 -- builtinSqPFillPi                         = BuiltinSqPFillPi
 builtinIsOne1                            = BuiltinIsOne1

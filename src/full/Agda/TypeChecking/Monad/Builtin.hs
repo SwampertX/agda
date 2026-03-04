@@ -268,7 +268,7 @@ primInteger, primIntegerPos, primIntegerNegSuc,
     primGlue, prim_glue, prim_unglue,
     prim_glueU, prim_unglueU,
     primFaceForall,
-    primSqFill, primSqFillPi,
+    primSqFill, primSqFillPi, primSqFillSigma,
     -- primSqPFill, primSqPFillPi
     primNatPlus, primNatMinus, primNatTimes, primNatDivSucAux, primNatModSucAux,
     primNatEquality, primNatLess,
@@ -373,6 +373,7 @@ prim_glue                             = getPrimitiveTerm builtin_glue
 prim_unglue                           = getPrimitiveTerm builtin_unglue
 primSqFill                            = getBuiltin builtinSqFill
 primSqFillPi                          = getBuiltin builtinSqFillPi
+primSqFillSigma                       = getBuiltin builtinSqFillSigma
 -- primSqPFill                           = getBuiltin builtinSqPFill
 -- primSqPFillPi                         = getBuiltin builtinSqPFillPi
 primFaceForall                        = getPrimitiveTerm builtinFaceForall
