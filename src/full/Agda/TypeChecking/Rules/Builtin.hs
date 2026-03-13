@@ -77,7 +77,7 @@ coreBuiltins =
   , (builtinArg                              |-> BuiltinData (tset --> tset) [builtinArgArg])
   , (builtinAbs                              |-> BuiltinData (tset --> tset) [builtinAbsAbs])
   , (builtinArgInfo                          |-> BuiltinData tset [builtinArgArgInfo])
-    -- impl sqfill for these builtins: and also coproduct as Σ Bool (λ b . if b then A else B end)
+    -- YJ TODO: impl sqfill for these builtins: and also coproduct as Σ Bool (λ b . if b then A else B end)
     -- and the path type
     -- if Sigma Bool = Copt doesn't work well, try defining coproducts as a builtin.
   , (builtinBool                             |-> BuiltinData tset [builtinTrue, builtinFalse])
@@ -243,11 +243,32 @@ coreBuiltins =
                                                                       nPi' "B" ((el bA) --> tset) $ \ bB -> 
                                                                       (nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
                                                                       (el $ primSqFill <@> sigmaAB bA bB)
-                                                                    reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
-                                                                    reportSDoc "cubical.prim.uip" 60 $ text $ show t
+                                                                    -- reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
+                                                                    -- reportSDoc "cubical.prim.uip" 60 $ text $ show t
                                                                     return t
                                                                   )) -- SqFill ΣA.B
 
+                                                                (const $ const $ return ()))
+
+  , (builtinSqFillUnit                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primUnit))
+                                                                (const $ const $ return ()))
+
+  , (builtinSqFillBool                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primBool))
+                                                                (const $ const $ return ()))
+
+  , (builtinSqFillNat                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primNat))
+                                                                (const $ const $ return ()))
+
+  , (builtinSqFillList                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      nPi' "A" tset $ \ bA -> 
+                                                                      (el $ primSqFill <@> bA) -->
+                                                                      (el $ primSqFill <@> (primList <@> bA))))
+                                                                (const $ const $ return ()))
+
+  , (builtinSqFillMaybe                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      nPi' "A" tset $ \ bA -> 
+                                                                      (el $ primSqFill <@> bA) -->
+                                                                      (el $ primSqFill <@> (primMaybe <@> bA))))
                                                                 (const $ const $ return ()))
 
   -- , (builtinSqPFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>

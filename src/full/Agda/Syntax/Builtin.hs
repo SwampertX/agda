@@ -93,6 +93,11 @@ data BuiltinId
   | BuiltinSqFill
   | BuiltinSqFillPi
   | BuiltinSqFillSigma
+  | BuiltinSqFillUnit
+  | BuiltinSqFillBool
+  | BuiltinSqFillNat
+  | BuiltinSqFillList
+  | BuiltinSqFillMaybe
   -- | BuiltinSqPFill
   -- | BuiltinSqPFillPi
   | BuiltinIsOne1
@@ -318,6 +323,11 @@ instance IsBuiltin BuiltinId where
     BuiltinSqFill                            -> "SQFILL"
     BuiltinSqFillPi                          -> "SQFILLPI"
     BuiltinSqFillSigma                       -> "SQFILLSIGMA"
+    BuiltinSqFillUnit                        -> "SQFILLUNIT"
+    BuiltinSqFillBool                        -> "SQFILLBOOL"
+    BuiltinSqFillNat                         -> "SQFILLNAT"
+    BuiltinSqFillList                        -> "SQFILLLIST"
+    BuiltinSqFillMaybe                       -> "SQFILLMAYBE"
     -- BuiltinSqPFill                           -> "SQPFILL"
     -- BuiltinSqPFillPi                         -> "SQPFILLPI"
     BuiltinIsOne1                            -> "ISONE1"
@@ -538,6 +548,7 @@ builtinNat, builtinSuc, builtinZero, builtinNatPlus, builtinNatMinus,
   builtinEquiv, builtinEquivFun, builtinEquivProof,
   builtinTranspProof,
   builtinSqFill, builtinSqFillPi, builtinSqFillSigma,
+  builtinSqFillUnit, builtinSqFillBool, builtinSqFillNat, builtinSqFillList, builtinSqFillMaybe,
   -- builtinSqPFill, builtinSqPFillPi,
   builtinSizeUniv, builtinSize, builtinSizeLt,
   builtinSizeSuc, builtinSizeInf, builtinSizeMax,
@@ -649,6 +660,11 @@ builtinTranspProof                       = BuiltinTranspProof
 builtinSqFill                            = BuiltinSqFill
 builtinSqFillPi                          = BuiltinSqFillPi
 builtinSqFillSigma                       = BuiltinSqFillSigma
+builtinSqFillUnit                        = BuiltinSqFillUnit
+builtinSqFillBool                        = BuiltinSqFillBool
+builtinSqFillNat                        = BuiltinSqFillNat
+builtinSqFillList                        = BuiltinSqFillList
+builtinSqFillMaybe                        = BuiltinSqFillMaybe
 -- builtinSqPFill                           = BuiltinSqPFill
 -- builtinSqPFillPi                         = BuiltinSqPFillPi
 builtinIsOne1                            = BuiltinIsOne1

@@ -19,6 +19,7 @@ import Agda.TypeChecking.Level (LevelKit(lvlZero))
 import Agda.TypeChecking.SizedTypes.Utils (debug)
 import Agda.Syntax.Common.Pretty (Pretty(pretty))
 import Agda.TypeChecking.Pretty
+import Agda.TypeChecking.Warnings (warning)
 
 -- Only for Type.
 prim_sqFill' :: TCM PrimitiveImpl
@@ -37,6 +38,11 @@ prim_sqFill' = do
         bC:rest -> do
           sbC <- reduceB' bC
           mSigma      <- getBuiltinName' builtinSigma
+          mUnit       <- getBuiltinName' builtinUnit
+          mBool       <- getBuiltinName' builtinBool
+          mNat       <- getBuiltinName' builtinNat
+          mList       <- getBuiltinName' builtinList
+          mMaybe       <- getBuiltinName' builtinMaybe
           let tLam = Lam defaultArgInfo
 
           case unArg $ ignoreBlocking sbC of
@@ -52,10 +58,13 @@ prim_sqFill' = do
               let ret' = ret `apply` rest
               redReturn ret'
 
+            -- Sigma
             Def q [Apply la, Apply lb, Apply bA, Apply bB] | Just q == mSigma -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting sigma type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "Sigma levels:" <+> pshow (unArg la) <+> pshow (unArg lb)
               tmSqFill    <- getTerm "for SqFillSigma" builtin_sqFill -- recursive!
               sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
+              -- lzero <- getTerm "for SqFillSigma" builtinLevelZero
+              -- warning equalLevel lzero la
               -- TODO: check la, lb = primLevelZero
               let sqFillA :: Term = apply tmSqFill [bA]
               sqFillB <- runNamesT [] $ do
@@ -64,6 +73,40 @@ prim_sqFill' = do
                 lam "a" $ \a -> sf <@> (bB' <@> a)
               let ret = apply sqFillSigma [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
               redReturn $ ret `apply` rest
+
+            -- Unit
+            Def q [] | Just q == mUnit -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Unit type" <+> prettyTCM t
+              sqFillUnit <- getTerm "for SqFillUnit" builtinSqFillUnit
+              redReturn $ sqFillUnit `apply` rest
+
+            -- Bool
+            Def q [] | Just q == mBool -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Bool type" <+> prettyTCM t
+              sqFillBool <- getTerm "for SqFillBool" builtinSqFillBool
+              redReturn $ sqFillBool `apply` rest
+
+            -- Nat
+            Def q [] | Just q == mNat -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Nat type" <+> prettyTCM t
+              sqFillNat <- getTerm "for SqFillNat" builtinSqFillNat
+              redReturn $ sqFillNat `apply` rest
+
+            -- List
+            Def q [Apply bA] | Just q == mList -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM t
+              tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
+              sqFillList <- getTerm "for SqFillList" builtinSqFillList
+              let sqFillA :: Term = apply tmSqFill [bA]
+              sqFillList <- getTerm "for SqFillList" builtinSqFillList
+              redReturn $ sqFillList `apply` rest
+
+            -- Maybe
+            Def q [Apply bA] | Just q == mMaybe -> do
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM t
+              sqFillMaybe <- getTerm "for SqFillMaybe" builtinSqFillMaybe
+              redReturn $ sqFillMaybe `apply` rest
+
             Def q _ -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM t
               nored bC
