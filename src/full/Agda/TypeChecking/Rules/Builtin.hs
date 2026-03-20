@@ -249,6 +249,19 @@ coreBuiltins =
                                                                   )) -- SqFill ΣA.B
 
                                                                 (const $ const $ return ()))
+  , (builtinSqFillProduct                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
+                                                                    let prodAB bA bB = primSigma <@> primLevelZero <@> primLevelZero <@> bA <@> (lam "_" \_ -> bB)
+                                                                    t <- nPi' "A" tset $ \ bA -> 
+                                                                      nPi' "sqFillA" (el (primSqFill <@> bA)) $ \ sqFillA ->
+                                                                      nPi' "B" tset $ \ bB -> 
+                                                                      nPi' "sqFillB" (el (primSqFill <@> bB)) $ \ sqFillB ->
+                                                                      (el $ primSqFill <@> prodAB bA bB)
+                                                                    reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
+                                                                    reportSDoc "cubical.prim.uip" 60 $ text $ show t
+                                                                    return t
+                                                                  )) -- SqFill ΠA.B
+
+                                                                (const $ const $ return ()))
 
   , (builtinSqFillUnit                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primUnit))
                                                                 (const $ const $ return ()))

@@ -98,6 +98,7 @@ data BuiltinId
   | BuiltinSqFillNat
   | BuiltinSqFillList
   | BuiltinSqFillMaybe
+  | BuiltinSqFillProduct
   -- | BuiltinSqPFill
   -- | BuiltinSqPFillPi
   | BuiltinIsOne1
@@ -328,6 +329,7 @@ instance IsBuiltin BuiltinId where
     BuiltinSqFillNat                         -> "SQFILLNAT"
     BuiltinSqFillList                        -> "SQFILLLIST"
     BuiltinSqFillMaybe                       -> "SQFILLMAYBE"
+    BuiltinSqFillProduct                       -> "SQFILLPRODUCT"
     -- BuiltinSqPFill                           -> "SQPFILL"
     -- BuiltinSqPFillPi                         -> "SQPFILLPI"
     BuiltinIsOne1                            -> "ISONE1"
@@ -548,7 +550,7 @@ builtinNat, builtinSuc, builtinZero, builtinNatPlus, builtinNatMinus,
   builtinEquiv, builtinEquivFun, builtinEquivProof,
   builtinTranspProof,
   builtinSqFill, builtinSqFillPi, builtinSqFillSigma,
-  builtinSqFillUnit, builtinSqFillBool, builtinSqFillNat, builtinSqFillList, builtinSqFillMaybe,
+  builtinSqFillUnit, builtinSqFillBool, builtinSqFillNat, builtinSqFillList, builtinSqFillMaybe, builtinSqFillProduct,
   -- builtinSqPFill, builtinSqPFillPi,
   builtinSizeUniv, builtinSize, builtinSizeLt,
   builtinSizeSuc, builtinSizeInf, builtinSizeMax,
@@ -665,6 +667,7 @@ builtinSqFillBool                        = BuiltinSqFillBool
 builtinSqFillNat                        = BuiltinSqFillNat
 builtinSqFillList                        = BuiltinSqFillList
 builtinSqFillMaybe                        = BuiltinSqFillMaybe
+builtinSqFillProduct                        = BuiltinSqFillProduct
 -- builtinSqPFill                           = BuiltinSqPFill
 -- builtinSqPFillPi                         = BuiltinSqPFillPi
 builtinIsOne1                            = BuiltinIsOne1

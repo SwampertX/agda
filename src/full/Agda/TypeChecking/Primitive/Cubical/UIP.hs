@@ -20,6 +20,7 @@ import Agda.TypeChecking.SizedTypes.Utils (debug)
 import Agda.Syntax.Common.Pretty (Pretty(pretty))
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Warnings (warning)
+import Agda.TypeChecking.Free (freeIn)
 
 -- Only for Type.
 prim_sqFill' :: TCM PrimitiveImpl
@@ -37,6 +38,7 @@ prim_sqFill' = do
       case ts of
         bC:rest -> do
           sbC <- reduceB' bC
+          let tbC = unArg $ ignoreBlocking sbC
           mSigma      <- getBuiltinName' builtinSigma
           mUnit       <- getBuiltinName' builtinUnit
           mBool       <- getBuiltinName' builtinBool
@@ -45,7 +47,7 @@ prim_sqFill' = do
           mMaybe       <- getBuiltinName' builtinMaybe
           let tLam = Lam defaultArgInfo
 
-          case unArg $ ignoreBlocking sbC of
+          case tbC of
             
             Pi aDom bAbs -> do
               tmSqFill <- getTerm "for SqFillPi" builtin_sqFill -- recursive!
@@ -60,41 +62,64 @@ prim_sqFill' = do
 
             -- Sigma
             Def q [Apply la, Apply lb, Apply bA, Apply bB] | Just q == mSigma -> do
-              reportSDoc "cubical.prim.uip" 40 $ "Sigma levels:" <+> pshow (unArg la) <+> pshow (unArg lb)
+              -- reportSDoc "cubical.prim.uip" 40 $ "Sigma levels:" <+> pshow (unArg la) <+> pshow (unArg lb)
+              reportSDoc "cubical.prim.uip" 40 $ "Sigma A B is" <+> prettyTCM tbC
+              reportSDoc "cubical.prim.uip" 40 $ "in Sigma A B, A is" <+> pshow (unArg bA)
+              reportSDoc "cubical.prim.uip" 40 $ "in Sigma A B, A is" <+> prettyTCM (unArg bA)
+              reportSDoc "cubical.prim.uip" 40 $ "in Sigma A B, B is" <+> pshow (unArg bB)
+              reportSDoc "cubical.prim.uip" 40 $ "in Sigma A B, B is" <+> prettyTCM (unArg bB)
+              ctx <- getContextTelescope
+              reportSDoc "cubical.prim.uip" 40 $ "context is" <+> pshow ctx
+              reportSDoc "cubical.prim.uip" 40 $ "context is" <+> prettyTCM ctx
               tmSqFill    <- getTerm "for SqFillSigma" builtin_sqFill -- recursive!
+
+              let
+                isNonDep :: Term -> Bool
+                isNonDep (Lam _ (NoAbs _ _))  = True
+                isNonDep (Lam _ (Abs _ body)) = not (0 `freeIn` body)
+                isNonDep _                    = False
+              
+              bB <- unArg <$> reduce bB
+              reportSDoc "cubical.prim.uip" 40 $ "B is" <+> if isNonDep bB then "non-dep" else "dependent"
+
+              sqFillProduct <- getTerm "for SqFillSigma" builtinSqFillProduct
               sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
               -- lzero <- getTerm "for SqFillSigma" builtinLevelZero
               -- warning equalLevel lzero la
               -- TODO: check la, lb = primLevelZero
               let sqFillA :: Term = apply tmSqFill [bA]
-              sqFillB <- runNamesT [] $ do
-                bB' <- open (unArg bB)
-                sf  <- open tmSqFill
-                lam "a" $ \a -> sf <@> (bB' <@> a)
-              let ret = apply sqFillSigma [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
+              sqFillB <- (case bB of
+                -- if bB is lambda without binding bA, or not using the bound bA term,
+                -- we can use the much simpler product rule.
+                (Lam _ b@(NoAbs _ _))                        -> return $ apply tmSqFill [defaultArg $ unAbs b]
+                (Lam _ b@(Abs _ body)) | not (freeIn 0 body) -> return $ apply tmSqFill [defaultArg $ unAbs b]
+                _ -> runNamesT [] $ do bB' <- open bB
+                                       sf  <- open tmSqFill
+                                       lam "a" $ \a -> sf <@> (bB' <@> a))
+              let ret = apply (if isNonDep bB then sqFillProduct else sqFillSigma) [bA, defaultArg sqFillA, defaultArg bB, defaultArg sqFillB]
               redReturn $ ret `apply` rest
 
             -- Unit
             Def q [] | Just q == mUnit -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting Unit type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Unit type" <+> prettyTCM tbC
               sqFillUnit <- getTerm "for SqFillUnit" builtinSqFillUnit
               redReturn $ sqFillUnit `apply` rest
 
             -- Bool
             Def q [] | Just q == mBool -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting Bool type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Bool type" <+> prettyTCM tbC
               sqFillBool <- getTerm "for SqFillBool" builtinSqFillBool
               redReturn $ sqFillBool `apply` rest
 
             -- Nat
             Def q [] | Just q == mNat -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting Nat type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Nat type" <+> prettyTCM tbC
               sqFillNat <- getTerm "for SqFillNat" builtinSqFillNat
               redReturn $ sqFillNat `apply` rest
 
             -- List
             Def q [Apply bA] | Just q == mList -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM tbC
               tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
               sqFillList <- getTerm "for SqFillList" builtinSqFillList
               let sqFillA :: Term = apply tmSqFill [bA]
@@ -103,16 +128,17 @@ prim_sqFill' = do
 
             -- Maybe
             Def q [Apply bA] | Just q == mMaybe -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM tbC
               sqFillMaybe <- getTerm "for SqFillMaybe" builtinSqFillMaybe
               redReturn $ sqFillMaybe `apply` rest
 
             Def q _ -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM tbC
+              reportSDoc "cubical.prim.uip" 40 $ "the qname is" <+> prettyTCM q
               nored bC
             t -> do
-              reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM t
-              reportSDoc "cubical.prim.uip" 40 $ "internal representation:" <+> pshow t
+              reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM tbC
+              reportSDoc "cubical.prim.uip" 40 $ "internal representation:" <+> pshow tbC
               nored bC
             
         [] -> __IMPOSSIBLE__ -- not enough arguments
