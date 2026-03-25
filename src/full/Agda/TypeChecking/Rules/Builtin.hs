@@ -283,6 +283,22 @@ coreBuiltins =
                                                                       (el $ primSqFill <@> bA) -->
                                                                       (el $ primSqFill <@> (primMaybe <@> bA))))
                                                                 (const $ const $ return ()))
+  , (builtinSqFillPath                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      nPi' "A" tset $ \ bA -> 
+                                                                      nPi' "a" (el bA) $ \ a -> 
+                                                                      nPi' "b" (el bA) $ \ b -> 
+                                                                      (el $ primSqFill <@> bA) --> 
+                                                                      (el $ primSqFill <@> (primPath <#@> primLevelZero <@> bA <@> a <@> b))))
+                                                                (const $ const $ return ()))
+  , (builtinSqFillPathP                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      nPi' "A" tset $ \ bA -> 
+                                                                      nPi' "B" tset $ \ bB -> 
+                                                                      nPi' "a" (el bA) $ \ a -> 
+                                                                      nPi' "b" (el bB) $ \ b -> 
+                                                                      nPi' "P" (el $ primPath <#@> (primLevelSuc <@> primLevelZero) <@> (unEl <$> tset) <@> bA <@> bB) $ \ bP -> 
+                                                                      (el $ primSqFill <@> bA) -->
+                                                                      (el $ primSqFill <@> (primPathP <#@> primLevelZero <@> bP <@> a <@> b))))
+                                                                (const $ const $ return ()))
 
   -- , (builtinSqPFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>
   --                                                               ((tinterval --> tinterval --> tset) --> tset))

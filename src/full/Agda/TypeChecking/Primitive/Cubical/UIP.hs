@@ -22,6 +22,11 @@ import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Warnings (warning)
 import Agda.TypeChecking.Free (freeIn)
 
+isNonDep :: Term -> Bool
+isNonDep (Lam _ (NoAbs _ _))  = True
+isNonDep (Lam _ (Abs _ body)) = not (0 `freeIn` body)
+isNonDep _                    = False
+
 -- Only for Type.
 prim_sqFill' :: TCM PrimitiveImpl
 prim_sqFill' = do
@@ -45,6 +50,8 @@ prim_sqFill' = do
           mNat       <- getBuiltinName' builtinNat
           mList       <- getBuiltinName' builtinList
           mMaybe       <- getBuiltinName' builtinMaybe
+          mpath  <- getBuiltinName' builtinPath
+          mpathp <- getBuiltinName' builtinPathP
           let tLam = Lam defaultArgInfo
 
           case tbC of
@@ -73,11 +80,6 @@ prim_sqFill' = do
               reportSDoc "cubical.prim.uip" 40 $ "context is" <+> prettyTCM ctx
               tmSqFill    <- getTerm "for SqFillSigma" builtin_sqFill -- recursive!
 
-              let
-                isNonDep :: Term -> Bool
-                isNonDep (Lam _ (NoAbs _ _))  = True
-                isNonDep (Lam _ (Abs _ body)) = not (0 `freeIn` body)
-                isNonDep _                    = False
               
               bB <- unArg <$> reduce bB
               reportSDoc "cubical.prim.uip" 40 $ "B is" <+> if isNonDep bB then "non-dep" else "dependent"
@@ -131,6 +133,33 @@ prim_sqFill' = do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM tbC
               sqFillMaybe <- getTerm "for SqFillMaybe" builtinSqFillMaybe
               redReturn $ sqFillMaybe `apply` rest
+
+            -- YJ TODO: check that level = 0
+            -- PathP (λ i → P i) x y
+            Def path' [Apply la, Apply bP, Apply x, Apply y] 
+              -- YJ TODO: unsatisfyingly, reducing bC always unfolds _≡_ to PathP, so this arm is never fired.
+              --  if we could fire here, we would have a much simpler term.
+              | Just path' == mpath || isNonDep (unArg bP) -> do
+                reportSDoc "cubical.prim.uip" 40 $ "we are getting path type" <+> prettyTCM tbC
+                tmSqFill    <- getTerm "for SqFillPath" builtin_sqFill -- recursive!
+                sqFillPath <- getTerm "for SqFillPath" builtinSqFillPath
+                iZero <- getTerm "for SqFillPathP" builtinIZero
+                let 
+                  bA = (unArg bP) `apply` [defaultArg iZero]
+                  sqFillA :: Term = apply tmSqFill [defaultArg bA]
+                redReturn $ sqFillPath `apply` [defaultArg bA, x, y, defaultArg sqFillA]
+
+              | Just path' == mpathp -> do
+                reportSDoc "cubical.prim.uip" 40 $ "we are getting pathp type" <+> prettyTCM tbC
+                tmSqFill    <- getTerm "for SqFillPathP" builtin_sqFill -- recursive!
+                sqFillPathP <- getTerm "for SqFillPathP" builtinSqFillPathP
+                iOne <- getTerm "for SqFillPathP" builtinIOne
+                iZero <- getTerm "for SqFillPathP" builtinIZero
+                let 
+                  bA = (unArg bP) `apply` [defaultArg iZero]
+                  bB = (unArg bP) `apply` [defaultArg iOne]
+                  sqFillA :: Term = apply tmSqFill [defaultArg bA]
+                redReturn $ sqFillPathP `apply` [defaultArg bA, defaultArg bB, x, y, bP, defaultArg sqFillA]
 
             Def q _ -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM tbC
