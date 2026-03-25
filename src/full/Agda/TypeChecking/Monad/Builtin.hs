@@ -256,7 +256,7 @@ constructorForm' pZero pSuc v =
 
 primInteger, primIntegerPos, primIntegerNegSuc,
     primFloat, primChar, primString, primUnit, primUnitUnit, primBool, primTrue, primFalse,
-    primSigma,
+    primSigma, primProduct, primCoproduct,
     primList, primNil, primCons, primIO, primNat, primSuc, primZero, primMaybe, primNothing, primJust,
     primPath, primPathP, primIntervalUniv, primInterval, primIZero, primIOne, primPartial, primPartialP,
     primIMin, primIMax, primINeg,
@@ -268,8 +268,8 @@ primInteger, primIntegerPos, primIntegerNegSuc,
     primGlue, prim_glue, prim_unglue,
     prim_glueU, prim_unglueU,
     primFaceForall,
-    primSqFill, primSqFillPi, primSqFillSigma,
-    primSqFillProduct, primSqFillUnit, primSqFillBool, primSqFillNat, primSqFillList, primSqFillMaybe,
+    primSqFill, primSqFillPi, primSqFillSigma, primSqFillProduct, primSqFillCoproduct,
+    primSqFillUnit, primSqFillBool, primSqFillNat, primSqFillList, primSqFillMaybe,
     -- primSqPFill, primSqPFillPi
     primNatPlus, primNatMinus, primNatTimes, primNatDivSucAux, primNatModSucAux,
     primNatEquality, primNatLess,
@@ -337,6 +337,8 @@ primChar                              = getBuiltin builtinChar
 primString                            = getBuiltin builtinString
 primBool                              = getBuiltin builtinBool
 primSigma                             = getBuiltin builtinSigma
+primProduct                           = getBuiltin builtinProduct
+primCoproduct                         = getBuiltin builtinCoproduct
 primUnit                              = getBuiltin builtinUnit
 primUnitUnit                          = getBuiltin builtinUnitUnit
 primTrue                              = getBuiltin builtinTrue
@@ -375,14 +377,15 @@ prim_unglue                           = getPrimitiveTerm builtin_unglue
 primSqFill                            = getBuiltin builtinSqFill
 primSqFillPi                          = getBuiltin builtinSqFillPi
 primSqFillSigma                       = getBuiltin builtinSqFillSigma
-primSqFillUnit                       = getBuiltin builtinSqFillUnit
-primSqFillBool                       = getBuiltin builtinSqFillBool
-primSqFillNat                       = getBuiltin builtinSqFillNat
-primSqFillList                       = getBuiltin builtinSqFillList
+primSqFillUnit                        = getBuiltin builtinSqFillUnit
+primSqFillBool                        = getBuiltin builtinSqFillBool
+primSqFillNat                         = getBuiltin builtinSqFillNat
+primSqFillList                        = getBuiltin builtinSqFillList
 primSqFillMaybe                       = getBuiltin builtinSqFillMaybe
-primSqFillProduct                       = getBuiltin builtinSqFillProduct
 -- primSqPFill                           = getBuiltin builtinSqPFill
 -- primSqPFillPi                         = getBuiltin builtinSqPFillPi
+primSqFillProduct                     = getBuiltin builtinSqFillProduct
+primSqFillCoproduct                   = getBuiltin builtinSqFillCoproduct
 primFaceForall                        = getPrimitiveTerm builtinFaceForall
 primIsOne1                            = getBuiltin builtinIsOne1
 primIsOne2                            = getBuiltin builtinIsOne2

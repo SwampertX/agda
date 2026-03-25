@@ -78,7 +78,7 @@ import Agda.Utils.Impossible
 #include "MachDeps.h"
 
 currentInterfaceVersion :: Word64
-currentInterfaceVersion = 20260324 * 10 + 0
+currentInterfaceVersion = 20260325 * 10 + 0
 
 ifaceVersionSize :: Int
 ifaceVersionSize = SIZEOF_WORD64
