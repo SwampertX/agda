@@ -21,7 +21,7 @@ import Agda.Syntax.Common.Pretty (Pretty(pretty))
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Warnings (warning)
 import Agda.TypeChecking.Free (freeIn)
-import Agda.Utils.Maybe (isJust)
+import Agda.Utils.Maybe (isJust, fromJust)
 
 isNonDep :: Term -> Maybe Term
 isNonDep (Lam _ b) = isNoAbs b
@@ -157,18 +157,20 @@ prim_sqFill' = do
               redReturn $ sqFillNat `apply` rest
 
             -- List
-            Def q [Apply bA] | Just q == mList -> do
+            Def q [Apply _la, Apply bA] | Just q == mList -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM tbC
               tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
               sqFillList <- getTerm "for SqFillList" builtinSqFillList
               let sqFillA :: Term = apply tmSqFill [bA]
-              redReturn $ sqFillList `apply` rest
+              redReturn $ apply sqFillList ([bA, defaultArg sqFillA] ++ rest)
 
             -- Maybe
-            Def q [Apply bA] | Just q == mMaybe -> do
+            Def q [Apply _la, Apply bA] | Just q == mMaybe -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM tbC
+              tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
               sqFillMaybe <- getTerm "for SqFillMaybe" builtinSqFillMaybe
-              redReturn $ sqFillMaybe `apply` rest
+              let sqFillA :: Term = apply tmSqFill [bA]
+              redReturn $ apply sqFillMaybe ([bA, defaultArg sqFillA] ++ rest)
 
             -- YJ TODO: check that level = 0
             -- PathP (λ i → P i) x y
@@ -200,6 +202,9 @@ prim_sqFill' = do
             Def q _ -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting non-sigma def type" <+> prettyTCM tbC
               reportSDoc "cubical.prim.uip" 40 $ "the qname is" <+> prettyTCM q
+              reportSDoc "cubical.prim.uip" 40 $ "the list qname is" <+> prettyTCM mList
+              reportSDoc "cubical.prim.uip" 40 $ "the givn qname is" <+> pshow q
+              reportSDoc "cubical.prim.uip" 40 $ "the list qname is" <+> pshow (fromJust mList)
               nored bC
 
             t -> do
