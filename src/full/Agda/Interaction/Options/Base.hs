@@ -921,7 +921,7 @@ infectiveCoinfectiveOptions =
   , coinfectiveOption (not . optCumulativity) "--no-cumulativity"
   , coinfectiveOption optLevelUniverse        "--level-universe"
   , infectiveOption (isJust . optCubical)     "--cubical[={full,erased,no-glue}]"
-  -- YJ TODO: should add cubicalUIP. can only import no-glue, but is infective.
+  , cubicalUIP
   , cubicalWithoutGlue
   , infectiveOption optGuarded                "--guarded"
   , infectiveOption optProp                   "--prop"
@@ -952,6 +952,25 @@ infectiveCoinfectiveOptions =
                &&
              not (optSafe current)
         else True
+      }
+
+  cubicalUIP =
+    let flagName = "--cubical=uip" in
+    (infectiveOption (\o -> optCubical o == Just CUip) flagName)
+      { icOptionOK = \current imported ->
+          -- A module using --cubical=uip cannot import full or erased
+          -- cubical modules, since those may postulate Glue.
+          -- Furthermore, --cubical=uip is infective: a module importing
+          -- a UIP module must itself use --cubical=uip.
+          case (optCubical current, optCubical imported) of
+            (Just CUip, Just CFull)   -> False
+            (Just CUip, Just CErased) -> False
+            (c,         Just CUip)    -> c == Just CUip
+            _                         -> True
+      , icOptionWarning = \m -> fsep $
+          pwords "Importing module" ++ [pretty m] ++
+          pwords "which might contain glue to a module with the option" ++
+          pwords (flagName ++ ".")
       }
 
   cubicalWithoutGlue =

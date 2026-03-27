@@ -1002,7 +1002,6 @@ getOriginalConstInfo q = do
   def  <- getConstInfo q
   lang <- getLanguage
   case (lang, defLanguage def) of
-    -- YJ TODO: what's up with this?
     (Cubical CErased, Cubical CFull) ->
       locallyTCState
         (stPragmaOptions . lensOptCubical)
