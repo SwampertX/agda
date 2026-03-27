@@ -116,27 +116,15 @@ prim_sqFill' = do
               redReturn $ ret `apply` rest
 
             -- Coproduct
-            Def q [Apply la, Apply lb, Apply bA, Apply bB] | Just q == mCoproduct -> do
+            -- Levels _la/_lb are ignored; prim^sqFill only applies at level 0 (A : Type).
+            Def q [Apply _la, Apply _lb, Apply bA, Apply bB] | Just q == mCoproduct -> do
               tmSqFill    <- getTerm "for SqFillCoproduct" builtin_sqFill -- recursive!
               sqFillCoproduct <- getTerm "for SqFillCoproduct" builtinSqFillCoproduct
-              -- lzero <- getTerm "for SqFillCoproduct" builtinLevelZero
-              -- warning equalLevel lzero la
-              -- TODO: check la, lb = primLevelZero
-              let 
+              let
                 sqFillA = apply tmSqFill [bA]
                 sqFillB = apply tmSqFill [bB]
                 ret = apply sqFillCoproduct [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
               redReturn $ ret `apply` rest
-
-            -- -- YJ FIXME: once builtinCoproduct is universe polymorphic, revert to the commented version
-            -- Def q [Apply bA, Apply bB] | Just q == mCoproduct -> do
-            --   tmSqFill    <- getTerm "for SqFillCoproduct" builtin_sqFill -- recursive!
-            --   sqFillCoproduct <- getTerm "for SqFillCoproduct" builtinSqFillCoproduct
-            --   let 
-            --     sqFillA = apply tmSqFill [bA]
-            --     sqFillB = apply tmSqFill [bB]
-            --     ret = apply sqFillCoproduct [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
-            --   redReturn $ ret `apply` rest
 
             -- Unit
             Def q [] | Just q == mUnit -> do
@@ -172,11 +160,10 @@ prim_sqFill' = do
               let sqFillA :: Term = apply tmSqFill [bA]
               redReturn $ apply sqFillMaybe ([bA, defaultArg sqFillA] ++ rest)
 
-            -- YJ TODO: check that level = 0
-            -- PathP (λ i → P i) x y
-            Def path' [Apply la, Apply bP, Apply x, Apply y] 
-              -- YJ TODO: unsatisfyingly, reducing bC always unfolds _≡_ to PathP, so this arm is never fired.
-              --  if we could fire here, we would have a much simpler term.
+            -- Level _la is ignored; prim^sqFill only applies at level 0 (A : Type).
+            -- Note: reducing bC always unfolds _≡_ to PathP, so the Just path' == mpath
+            -- guard is never fired in practice; the isNonDep check handles non-dep paths.
+            Def path' [Apply _la, Apply bP, Apply x, Apply y]
               | Just path' == mpath || isJust (isNonDep (unArg bP)) -> do
                 reportSDoc "cubical.prim.uip" 40 $ "we are getting path type" <+> prettyTCM tbC
                 tmSqFill    <- getTerm "for SqFillPath" builtin_sqFill -- recursive!
@@ -268,7 +255,6 @@ prim_sqFill' = do
 --         el' la $ cl primPath <#> la <#> pathxy <@> p <@> q
 --   return $ PrimImpl t $
 --     PrimFun __IMPOSSIBLE__ 6 [] $ \ts _nelims ->
---       -- YJ TODO: just "alias" to sqPFill.
 --       return $ NoReduction []
 
 -- ifThenElse :: HasBuiltins m => m Term

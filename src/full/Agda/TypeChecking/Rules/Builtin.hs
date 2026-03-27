@@ -77,9 +77,6 @@ coreBuiltins =
   , (builtinArg                              |-> BuiltinData (tset --> tset) [builtinArgArg])
   , (builtinAbs                              |-> BuiltinData (tset --> tset) [builtinAbsAbs])
   , (builtinArgInfo                          |-> BuiltinData tset [builtinArgArgInfo])
-    -- YJ TODO: impl sqfill for these builtins: and also coproduct as Σ Bool (λ b . if b then A else B end)
-    -- and the path type
-    -- if Sigma Bool = Copt doesn't work well, try defining coproducts as a builtin.
   , (builtinBool                             |-> BuiltinData tset [builtinTrue, builtinFalse])
   , (builtinNat                              |-> BuiltinData tset [builtinZero, builtinSuc])
   , (builtinMaybe                            |-> BuiltinData (tset --> tset) [builtinNothing, builtinJust])
