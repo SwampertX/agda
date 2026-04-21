@@ -187,35 +187,73 @@ to this variable to take effect."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Global and buffer-local vars, initialization
 
-(defvar agda2-mode-syntax-table
-  (let ((tbl (make-syntax-table)))
-    ;; Set the syntax of every char to "w" except for those whose default
-    ;; syntax in `standard-syntax-table' is `paren' or `whitespace'.
-    (map-char-table (lambda (keys val)
-                      ;; `keys' here can be a normal char, a generic char
-                      ;; (Emacs<23), or a char range (Emacs>=23).
-                      (unless (memq (car val)
-                                    (eval-when-compile
-                                      (mapcar 'car
-                                              (list (string-to-syntax "(")
-                                                    (string-to-syntax ")")
-                                                    (string-to-syntax " ")))))
-                        (modify-syntax-entry keys "w" tbl)))
-                    (standard-syntax-table))
-    ;; Then override the remaining special cases.
-    (dolist (cs '((?- . "w 12") (?\n . ">")
-                  (?. . ".") (?\; . ".") (?! . ".")))
-      (modify-syntax-entry (car cs) (cdr cs) tbl))
-    tbl)
-  "Syntax table used by the Agda mode:
+(defconst agda2-mode-syntax-table
+  (with-syntax-table (make-syntax-table)
+    ;; The `standard-syntax-table' marks characters like "[" and "⟨" as delimiters.
+    ;; This breaks `symbol-at-point' for identifiers like "[[X]]" when the point
+    ;; is on the outer brackets. To fix this, we go through and mark all non-whitespace
+    ;; characters as word constitutents, and then patch things up afterwards.
+    (map-char-table
+     (lambda (range val)
+       (unless (memq (car val) (eval-when-compile (mapcar (lambda (c) (car (string-to-syntax c))) '(" " "w"))))
+         (modify-syntax-entry range "w")))
+     (char-table-parent (syntax-table)))
 
--   | Comment character, word constituent.
-\n  | Comment ender.
-.;! | Punctuation.
+    ;; String literals
+    ;;
+    ;; We do not include ?\' as a quote char, as it can
+    ;; be used in identifiers.
+    (modify-syntax-entry ?\" "\"")
+
+    ;; Comments
+    ;;
+    ;; We use the "c" alternative comment style over "b", as "b"
+    ;; only can be attached to the second char of a starting sequence
+    ;; or the first char of an ending sequence. This leads to ambiguities,
+    ;; as "{-" and "--" both have "-" as their second char.
+    (modify-syntax-entry ?\{ "(}1nc")
+    (modify-syntax-entry ?\} "){4nc")
+    (modify-syntax-entry ?\n ">")
+    ;; [HACK: Reed M, 04/03/2026]
+    ;; We mark "-" as a word character so that `word-at-point' selects
+    ;; whole identifiers in kebab-case like "foo-bar-baz". However, we
+    ;; also mark the sequences "--", "{-", and "-}" as comment sequences.
+    ;; This makes `comment-kill' function, but has the somewhat unintended
+    ;; side effect of making killing off "--bar" in an identifier like "foo--bar".
+    (modify-syntax-entry ?- "w 123")
+
+    ;; Parens
+    (modify-syntax-entry ?\( "()")
+    (modify-syntax-entry ?\) ")(")
+    ;; Adding ⦃⦄ and ⦇⦈ is a bit dubious here, as ⦃a⦄ and ⦇a⦈ are
+    ;; valid identifers. However, it is more useful to be able
+    ;; to get matching paren highlights then it is to support this
+    ;; somewhat suspicious grammatical choice.
+    (modify-syntax-entry ?⦃ "(⦄")
+    (modify-syntax-entry ?⦄ ")⦃")
+    (modify-syntax-entry ?⦇ "(⦈")
+    (modify-syntax-entry ?⦈ ")⦇")
+
+    ;; Punctuation
+    (modify-syntax-entry ?. ".")
+    (modify-syntax-entry ?\; ".")
+    ;; [FIXME: Reed M, 04/03/2026]
+    ;; Why is this marked as puncutation?
+    (modify-syntax-entry ?! ".")
+
+    (syntax-table))
+  "Syntax table used by `agda2-mode':
+
+\"     | String delimiter.
+-      | Comment character, word constituent.
+{}     | Comment character, parentheses.
+\n     | Comment ender.
+⦃⦄⦇⦈() | Parenthesis.
+.;!    | Punctuation.
 
 Remaining characters inherit their syntax classes from the
-standard syntax table if that table treats them as matching
-parentheses or whitespace.  Otherwise they are treated as word
+`standard-syntax-table' if that table treats them as matching
+whitespace.  Otherwise they are treated as word
 constituents.")
 
 (defconst agda2-command-table
@@ -400,9 +438,6 @@ The command which arrived last is stored first in the list.")
   "The Agda buffer.
 Note that this variable is not buffer-local.")
 
-(defvar agda2-in-agda2-file-buffer nil
-  "Was `agda2-file-buffer' active when `agda2-output-filter' started?
-Note that this variable is not buffer-local.")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; agda2-mode
@@ -685,9 +720,7 @@ reloaded from `agda2-highlighting-file', unless
   ;; extract the fontified text and kill the temp buffer; so when Agda
   ;; finally answers, the temp buffer is long gone.
   (when (buffer-live-p agda2-file-buffer)
-  (setq agda2-in-agda2-file-buffer
-        (and agda2-file-buffer
-             (equal (current-buffer) agda2-file-buffer)))
+
   (let (;; The input lines in the current chunk.
         (lines (split-string chunk "\n"))
 
@@ -1026,7 +1059,7 @@ major mode)."
   (setq agda2-buffer-external-status status)
   (force-mode-line-update))
 
-(defmacro agda2-information-buffer (buffer kind title)
+(defmacro agda2-information-buffer (buffer kind name-of-mode title)
   "Used to define functions like `agda2-info-buffer'."
   `(defun ,buffer nil
      ,(concat "Creates the Agda " kind
@@ -1037,7 +1070,7 @@ The buffer is returned.")
           (generate-new-buffer ,title))
 
     (with-current-buffer ,buffer
-      (compilation-mode "AgdaInfo")
+      (compilation-mode ,name-of-mode)
       ;; Support for jumping to positions mentioned in the text.
       (set (make-local-variable 'compilation-error-regexp-alist)
            '(("\\([\\\\/][^[:space:]]*\\):\\([0-9]+\\)\\.\\([0-9]+\\)\\(-\\(\\([0-9]+\\)\\.\\)?\\([0-9]+\\)\\)?"
@@ -1090,7 +1123,7 @@ The buffer is returned.")
 
   ,buffer))
 
-(agda2-information-buffer agda2-info-buffer "info" "*Agda information*")
+(agda2-information-buffer agda2-info-buffer "info" "AgdaInfo" "*Agda information*")
 
 (defun agda2-display-information-buffer ()
   "Make sure the Agda information buffer is displayed in the current window.
@@ -1658,18 +1691,29 @@ Only if the buffer is unmodified, and only if there is anything to load."
              "Cmd_load_highlighting_info"
              (agda2-string-quote (buffer-file-name)))))
 
-(defun agda2-literate-p ()
-  "Is the current buffer a literate Agda buffer?"
-  (not (equal (file-name-extension (buffer-file-name)) "agda")))
+(defun agda2-file-type (&optional path)
+  "Determine the type of literate agda file based off of the file extension.
 
-(defmacro agda2--case (exp &rest branches) ;FIXME: Use `pcase' instead!
-  (declare (debug t) (indent 1))
-  (let ((s (make-symbol "v")))
-    `(let ((,s ,exp))
-       (cond
-         ,@(mapcar (lambda (branch)
-                     `((equal ,s ,(car branch)) ,@(cdr branch)))
-                   branches)))))
+If PATH is nil, use the filepath of the current buffer.
+
+Will return one of the following options:
+
+-- plain
+-- latex
+-- rst
+-- markdown
+-- org
+-- typst
+-- forester"
+  (pcase (file-name-extension (or path (buffer-file-name)))
+    ("agda" 'plain)
+    ((or "lagda" "tex") 'latex)
+    ("rst" 'rst)
+    ("org" 'org)
+    ("md" 'markdown)
+    ("typ" 'typst)
+    ("tree" 'forester)
+    (ext (error "Unknown agda file extension %s" ext))))
 
 (defun agda2-goals-action (goals)
   "Annotates the goals in the current buffer with text properties.
@@ -1681,66 +1725,120 @@ ways."
   (declare (agda2-command (list)))
   (agda2-forget-all-goals)
   (agda2-let
-      ((literate (agda2-literate-p))
-       stk
-       top
+      ((file-type (agda2-file-type))
+       ;; All regexes in `code-start-rx' are headed by line-start (blank *) to avoid
+       ;; creating interaction points in code blocks that are commented
+       ;; out using the host languages comments (EG: % \begin{code})
+       ;; See issue #1331.
+       ;;
+       ;; [TODO: Reed M, 14/04/2026] Literate RST support.
+       (code-start-rx
+        (pcase file-type
+          ('latex
+           (rx line-start (* blank) "\\begin{code}"))
+          ('org
+           (rx line-start (* blank) "#+begin_src" (+ blank) "agda2"))
+          ((or 'typst 'markdown)
+           (rx line-start (* blank) "```"))
+          ('forester
+           (rx line-start (* blank) "\\agda{"))))
+       ;; We don't need to be as careful with comments in `code-end-rx', as
+       ;; `code-rx' and the main lexer loop will handle comments for us.
+       (code-end-rx
+        (pcase file-type
+          ('latex
+           (rx "\\end{code}"))
+          ('org
+           (rx "#+end_src"))
+          ((or 'typst 'markdown)
+           (rx "```"))
+          ;; Forester uses } to close out code blocks,
+          ;; which requires special handling due to implicit
+          ;; arguments.
+          (_ (rx unmatchable))))
+       (comment-rx
+        (rx (or "{-" "-}")))
+       (string-end-rx
+        (rx (not "\\") "\""))
+       (char-end-rx
+        (rx (not "\\") "'"))
+       (code-rx
+        (rx (or
+             (submatch-n 1 "\"")
+             (submatch-n 1 "'")
+             ;; We want to make sure that we only match proper comments so that we don't
+             ;; stop lexing on identifiers like foo--bar.
+             (and (or bol (any "." "{" "}" "(" ")" ";" space)) (submatch-n 1 "--"))
+             ;; Similar idea: don't match ? inside of an identifier name.
+             (and (or bol (any "." "{" "}" "(" ")" ";" space))
+                  (submatch-n 1 "?")
+                  (or eol (any "." "{" "}" "(" ")" ";" space)))
+             (submatch-n 1 (and "{" (? (any "-" "!"))))
+             (submatch-n 1 (and (? "!") "}"))
+             (submatch-n 1 (regexp code-end-rx)))))
        ;; Don't run modification hooks: we don't want this function to
-       ;; trigger agda2-abort-highlighting.
-       (inhibit-modification-hooks t))
-      ((delims() (re-search-forward "[?]\\|[{][-!]\\|[-!][}]\\|--\\|^%.*\\\\begin{code}\\|\\\\begin{code}\\|\\\\end{code}\\|```\\|\\#\\+begin_src agda2\\|\\#\\+end_src" nil t))
-       ;; is-proper checks whether string s (e.g. "?" or "--") is proper
-       ;; i.e., is not part of an identifier.
-       ;; comment-starter is true if s starts a comment (e.g. "--")
-       (is-proper (s comment-starter)
-          (save-excursion
-            (save-match-data
-              (backward-char (length s))
-              (unless (bolp) (backward-char 1))  ;; bolp = pointer at beginning of line
-              ;; Andreas, 2014-05-17 Issue 1132
-              ;; A questionmark can also follow immediately after a .
-              ;; for instance to be a place holder for a dot pattern.
-              (looking-at (concat "\\([.{}();]\\|^\\|\\s \\)"  ;; \\s = whitespace
-                                  (regexp-quote s)
-                                  (unless comment-starter
-                                    "\\([{}();]\\|$\\|\\s \\)"))))))
-       (make(p)  (agda2-make-goal p (point) (pop goals)))
-       (inside-comment() (and stk (null     (car stk))))
-       (inside-goal()    (and stk (integerp (car stk))))
-       (outside-code()   (and stk (eq (car stk) 'outside)))
-       (inside-code()    (not (outside-code)))
-       ;; inside a multi-line comment ignore everything but the multi-line comment markers
-       (safe-delims()
-          (if (inside-comment)
-               (re-search-forward "{-\\|-}" nil t)
-            (delims))))
+       ;; trigger `agda2-abort-highlighting'.
+       (inhibit-modification-hooks t)
+       ;; Make sure that we don't use case-sensitive matching
+       ;; so that we can pick up on all capitalizations of #+BEGIN_SRC.
+       (case-fold-search t)
+       stk)
+      ((advance-to-code-block ()
+         (when code-start-rx (re-search-forward code-start-rx nil t)))
+       (advance-to-comment-end ()
+         (re-search-forward comment-rx nil t)
+         (pcase (match-string 0)
+           ("{-"
+            (push 'comment stk)
+            (advance-to-comment-end))
+           ("-}"
+            (when (eq 'comment (pop stk))
+              (advance-to-comment-end)))))
+       (advance-to-string-end ()
+         (re-search-forward string-end-rx nil t))
+       (advance-to-char-end ()
+         (re-search-forward char-end-rx nil t))
+       (end-of-code-block (str)
+         (pcase file-type
+           ('latex (equal str "\\end{code}"))
+           ('org (equal (downcase str) "#+end_src"))
+           ((or 'typst 'markdown) (equal str "```"))
+           ('forester (and (equal str "}") (not (eq (car stk) 'bracket)))))))
     (save-excursion
-      ;; In literate mode we should start out in the "outside of code"
-      ;; state.
-      (if literate (push 'outside stk))
       (goto-char (point-min))
-      (while (and goals (safe-delims))
-        (agda2--case (match-string 0)
-          ("\\begin{code}"     (when (outside-code)               (pop stk)))
-          ("\\end{code}"       (when (not stk)                    (push 'outside stk)))
-          ("#+begin_src agda2" (when (outside-code)               (pop stk)))
-          ("#+end_src"         (when (not stk)                    (push 'outside stk)))
-          ("```"               (if   (outside-code)               (pop stk)
-                               (when (not stk)                    (push 'outside stk))))
-          ("--"                (when (and (not stk)
-                                          (is-proper "--" t))     (end-of-line)))
-          ("{-"                (when (and (inside-code)
-                                          (not (inside-goal)))    (push nil           stk)))
-          ("-}"                (when (inside-comment)             (pop stk)))
-          ("{!"                (when (and (inside-code)
-                                          (not (inside-comment))) (push (- (point) 2) stk)))
-          ("!}"                (when (inside-goal)
-                                 (setq top (pop stk))
-                                 (unless stk (make top))))
-          ("?"                 (progn
-                                 (when (and (not stk) (is-proper "?" nil))
-                                   (delete-char -1)
-                                   (insert "{!!}")
-                                   (make (- (point) 4))))))))))
+      ;; This code assumes that all delimiters in Agda code
+      ;; are properly matched, which may not hold if the user
+      ;; performs a slow load and then starts insert/deleting
+      ;; braces or quotes. However, this sort of problem is unavoidable
+      ;; with our current synchronization strategy (or lack thereof).
+      (advance-to-code-block)
+      (while (and goals (re-search-forward code-rx nil t))
+        (pcase (match-string 1)
+          ((pred end-of-code-block)
+           (advance-to-code-block))
+          ("\""
+           (advance-to-string-end))
+          ("'"
+           (advance-to-char-end))
+          ("{-"
+           (advance-to-comment-end))
+          ("--"
+           (end-of-line))
+          ("{!"
+           (push (- (point) 2) stk))
+          ("!}"
+           (let ((start (pop stk)))
+             (unless stk
+               (agda2-make-goal start (point) (pop goals)))))
+          ("?"
+           (goto-char (match-beginning 1))
+           (delete-char 1)
+           (insert "{!!}")
+           (agda2-make-goal (- (point) 4) (point) (pop goals)))
+          ("{"
+           (push 'bracket stk))
+          ("}"
+           (pop stk)))))))
 
 (defun agda2-make-goal (p q n)
   "Make a goal with number N at <P>{!...!}<Q>.  Assume the region is clean."
@@ -1945,18 +2043,24 @@ To do: dealing with semicolon separated decls."
 (defvar agda2-debug-buffer-name "*Agda debug*"
   "The name of the buffer used for Agda debug messages.")
 
-(defun agda2-verbose (msg)
+(defvar agda2-debug-buffer nil
+  "Agda debug buffer.")
+
+(agda2-information-buffer agda2-debug-buffer "debug" "AgdaDebug" agda2-debug-buffer-name)
+
+(defun agda2-verbose (msg &rest annotations)
   "Appends the string MSG plus a final newline
 to the `agda2-debug-buffer-name' buffer.
 Note that this buffer's contents is not erased automatically when
 a file is loaded."
- (declare (agda2-command (string)))
- (unless (string-empty-p msg)
-  (with-current-buffer (get-buffer-create agda2-debug-buffer-name)
-    (save-excursion
-      (goto-char (point-max))
-      (insert msg)
-      (newline)))))
+  (declare (agda2-command (string &repeat t)))
+  (unless (string-empty-p msg)
+    (with-current-buffer (agda2-debug-buffer)
+      (save-excursion
+        (goto-char (point-max))
+        (apply 'annotation-load "Click to jump to definition" nil msg annotations)
+        (insert msg)
+        (newline)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Comments and paragraphs
@@ -2178,12 +2282,15 @@ invoked."
 FILEPOS should have the form (FILE . POSITION).
 
 If `agda2-highlight-in-progress' is nil, then nothing happens.
-Otherwise, if the current buffer is the one that is connected to
-the Agda process, then point is moved to POSITION in
-FILE (assuming that the FILE is readable). Otherwise point is
-moved to the given position in the buffer visiting the file, if
-any, and in every window displaying the buffer, but the window
-configuration and the selected window are not changed."
+
+If there is a buffer already visiting FILE that is displayed in
+some windows, then the point is updated to POSITION in all of those
+windows.
+
+If there is a buffer visiting FILE that is not displayed in any windows,
+then update the point, but do not display it.
+
+If there is no buffer visiting FILE, do nothing."
   (declare (agda2-command (cons)))
   (when (and agda2-highlight-in-progress
              (consp filepos)
@@ -2194,8 +2301,16 @@ configuration and the selected window are not changed."
     ;; the current marker onto Xref' stack to make it seem like a Xref
     ;; jump.
     (xref-push-marker-stack)
-    (set-buffer (find-file-noselect (car filepos)))
-    (goto-char (cdr filepos))))
+    (if-let* ((buffer (find-buffer-visiting (car filepos))))
+        (if-let* ((windows (get-buffer-window-list buffer 'no-minibuffer 'all-frames)))
+            ;; Buffer is visible, update points in all windows.
+            (dolist (window windows)
+              (with-selected-window window
+                (goto-char (cdr filepos))))
+          ;; Buffer exists, but is not visible.
+          ;; We do not display the buffer here, as can be jarring for slow loads.
+          ;; See https://github.com/agda/agda/pull/8458#issuecomment-4032442448
+          (goto-char (cdr filepos))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Implicit arguments
@@ -2360,9 +2475,8 @@ An attempt is made to preserve the default value of `agda2-mode-hook'."
     ;; Kill some buffers related to Agda.
     (when (buffer-live-p agda2-info-buffer)
       (kill-buffer agda2-info-buffer))
-    (when (and agda2-debug-buffer-name
-               (get-buffer agda2-debug-buffer-name))
-      (kill-buffer agda2-debug-buffer-name))
+    (when (buffer-live-p agda2-debug-buffer)
+      (kill-buffer agda2-debug-buffer))
 
     ;; Remove the Agda mode directory from the load path.
     (setq load-path (delete agda2-directory load-path))

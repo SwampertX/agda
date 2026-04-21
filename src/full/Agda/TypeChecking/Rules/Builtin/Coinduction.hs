@@ -26,7 +26,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Rules.Builtin
 import Agda.TypeChecking.Rules.Term
 
-import Agda.Utils.Lens
 import Agda.Utils.Null
 
 -- | The type of @∞@.
@@ -163,7 +162,7 @@ bindBuiltinFlat x =
     addConstant flat $
       flatDefn { defPolarity       = []
                , defArgOccurrences = [StrictPos]  -- changing that to [Mixed] destroys monotonicity of 'Rec' in test/succeed/GuardednessPreservingTypeConstructors
-               , defCopatternLHS = hasProjectionPatterns cc
+               , defCopatternLHS' = hasProjectionPatterns cc
                , theDef = FunctionDefn fun
                    { _funClauses      = [clause]
                    , _funCompiled     = Just $ cc

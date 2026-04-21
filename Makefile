@@ -558,7 +558,7 @@ cubical-test :
 	-rm -rf cubical/_build
 	@$(call decorate, "Cubical library test", \
 		time $(MAKE) -C cubical \
-                  AGDA_BIN=$(AGDA_BIN) RTS_OPTIONS=$(AGDA_OPTS))
+			AGDA_BIN="$(AGDA_BIN)" AGDA_FLAGS="-j" RTS_OPTIONS=$(AGDA_OPTS))
 
 .PHONY : continue-cubical-test ##
 continue-cubical-test :
@@ -607,7 +607,7 @@ ghc-compiler-test :
 .PHONY : js-compiler-test ##
 js-compiler-test :
 	@$(call decorate, "JS Compiler tests", \
-		AGDA_BIN=$(AGDA_BIN) $(AGDA_TESTS_BIN) $(AGDA_TESTS_OPTIONS) --regex-include all/Compiler/JS_CJS_MinifiedOptimized --regex-exclude AllStdLib)
+		AGDA_BIN=$(AGDA_BIN) $(AGDA_TESTS_BIN) $(AGDA_TESTS_OPTIONS) --regex-include all/Compiler/JS_MinifiedOptimized --regex-exclude AllStdLib)
 
 .PHONY : std-lib-compiler-test ##
 std-lib-compiler-test :

@@ -22,7 +22,6 @@ import Agda.TypeChecking.Primitive
 import Agda.TypeChecking.Reduce
 
 import Agda.Utils.Either
-import Agda.Utils.Lens
 import Agda.Utils.List ( hasElem )
 import Agda.Utils.Haskell.Syntax qualified as HS
 
@@ -288,6 +287,9 @@ primBody s = maybe unimplemented (fromRight (hsVarUQ . HS.Ident) <$>) $ List.loo
 
   -- Erase
   , PrimEraseEquality |-> return mazErasedName
+
+  -- Rewriting
+  , PrimRewriteNoMatch |-> return "\\ _ _ x -> x"
 
   -- Cubical
   , PrimIMin          |-> return "(&&)"
