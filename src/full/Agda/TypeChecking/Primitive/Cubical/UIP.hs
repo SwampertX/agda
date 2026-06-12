@@ -31,10 +31,20 @@ sqFillProduct :: (HasBuiltins m) => (Arg Term) -> (Arg Term) -> m Term
 sqFillProduct bA bB = do
   tmSqFill    <- getTerm "for SqFillProduct" builtin_sqFill -- recursive!
   sqFillProduct <- getTerm "for SqFillProduct" builtinSqFillProduct
-  let 
+  let
     sqFillA = apply tmSqFill [bA]
     sqFillB = apply tmSqFill [bB]
   return $ apply sqFillProduct [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
+
+sqFillSigma :: (HasBuiltins m) => (Arg Term) -> (Arg Term) -> m Term
+sqFillSigma bA bB = do
+  let sqFillA :: Term = apply tmSqFill [bA]
+  sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
+  sqFillB <- runNamesT [] $ ( do
+    bB' <- open bB
+    sf <- open tmSqFill
+    lam "a" $ \a -> sf <@> (bB' <@> a))
+  return $ apply sqFillSigma [bA, defaultArg sqFillA, defaultArg bB, defaultArg sqFillB]
 
 prim_sqFill' :: TCM PrimitiveImpl
 prim_sqFill' = do
@@ -45,8 +55,8 @@ prim_sqFill' = do
 
   return $ PrimImpl t $
     -- primfunargoccur is for positivity when my primitive is applied to an inductive type.
-    -- try when applying to an inductive type.
-    PrimFun __IMPOSSIBLE__ 1 [] $ \ts _nelims -> do
+    -- YJ: try when applying to an inductive type.
+    PrimFun __IMPOSSIBLE__ 1 [] $ \ts nelims -> do
       case ts of
         bC:rest -> do
           sbC <- reduceB' bC
@@ -62,21 +72,22 @@ prim_sqFill' = do
           mpath  <- getBuiltinName' builtinPath
           mpathp <- getBuiltinName' builtinPathP
           let tLam = Lam defaultArgInfo
+              todo = nored bC -- TODO: empty records
 
           case tbC of
-            
+
             Pi aDom bAbs -> do
               tmSqFill <- getTerm "for SqFillPi" builtin_sqFill -- recursive!
               sqFillPi <- getTerm "for SqFillPi" builtinSqFillPi
-              let 
+              let
                 bA = pure $ unEl (unDom aDom)
-                bB = pure . tLam $ unEl <$> bAbs -- λ a. B a 
+                bB = pure . tLam $ unEl <$> bAbs -- λ a. B a
                 sqFillB = pure . tLam $ apply1 tmSqFill <$> unEl <$> bAbs -- λ a . primSqFill (B a)
               ret <- pure sqFillPi <@> bA <@> bB <@> sqFillB
               let ret' = ret `apply` rest
               redReturn ret'
-            
-            Def q [Apply _la, Apply _lb, Apply bA, Apply bB] 
+
+            Def q [Apply _la, Apply _lb, Apply bA, Apply bB]
               | Just q == mSigma -> do
                 -- reportSDoc "cubical.prim.uip" 40 $ "Sigma levels:" <+> pshow (unArg la) <+> pshow (unArg lb)
                 -- reportSDoc "cubical.prim.uip" 40 $ "Sigma A B is" <+> prettyTCM tbC
@@ -93,7 +104,7 @@ prim_sqFill' = do
                       Nothing -> do
                         let sqFillA :: Term = apply tmSqFill [bA]
                         sqFillSigma <- getTerm "for SqFillSigma" builtinSqFillSigma
-                        sqFillB <- runNamesT [] $ ( do 
+                        sqFillB <- runNamesT [] $ ( do
                           bB' <- open bB
                           sf <- open tmSqFill
                           lam "a" $ \a -> sf <@> (bB' <@> a))
@@ -115,7 +126,7 @@ prim_sqFill' = do
                   ret = apply sqFillCoproduct [bA, defaultArg sqFillA, bB, defaultArg sqFillB]
                 redReturn $ ret `apply` rest
 
-            Def q [] 
+            Def q []
               | Just q == mUnit -> do
                 reportSDoc "cubical.prim.uip" 40 $ "we are getting Unit type" <+> prettyTCM tbC
                 sqFillUnit <- getTerm "for SqFillUnit" builtinSqFillUnit
@@ -131,7 +142,7 @@ prim_sqFill' = do
                 sqFillNat <- getTerm "for SqFillNat" builtinSqFillNat
                 redReturn $ sqFillNat `apply` rest
 
-            Def q [Apply _la, Apply bA] 
+            Def q [Apply _la, Apply bA]
               | Just q == mList -> do
                 reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM tbC
                 tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
@@ -155,7 +166,7 @@ prim_sqFill' = do
                 tmSqFill    <- getTerm "for SqFillPath" builtin_sqFill -- recursive!
                 sqFillPath <- getTerm "for SqFillPath" builtinSqFillPath
                 iZero <- getTerm "for SqFillPathP" builtinIZero
-                let 
+                let
                   bA = (unArg bP) `apply` [defaultArg iZero]
                   sqFillA :: Term = apply tmSqFill [defaultArg bA]
                 redReturn $ sqFillPath `apply` [defaultArg bA, x, y, defaultArg sqFillA]
@@ -166,22 +177,56 @@ prim_sqFill' = do
                 sqFillPathP <- getTerm "for SqFillPathP" builtinSqFillPathP
                 iOne <- getTerm "for SqFillPathP" builtinIOne
                 iZero <- getTerm "for SqFillPathP" builtinIZero
-                let 
+                let
                   bA = (unArg bP) `apply` [defaultArg iZero]
                   bB = (unArg bP) `apply` [defaultArg iOne]
                   sqFillA :: Term = apply tmSqFill [defaultArg bA]
                 redReturn $ sqFillPathP `apply` [defaultArg bA, defaultArg bB, x, y, bP, defaultArg sqFillA]
 
-            -- records
-            Def q es -> do
-              info <- getConstInfo q
-              case theDef info of 
-                Record{recTel = tel} -> do
-                  let 
-                    telToSigma :: Agda.Syntax.Internal.Telescope -> (Abs Term, Abs Term)
-                    sqFillSigma :: Abs Term -> Abs Term -> Term 
-                  redReturn $ curry sqFillSigma $ telToSigma tel
-                _ -> nored bC
+            -- record types
+            Def qname elims -> do
+              constInfo <- getConstInfo qname
+              let
+                lam_i = Lam defaultArgInfo . Abs "i"
+
+                -- When should Kan operations on a record value reduce?
+                doR r@Record{recEtaEquality' = eta} = case theEtaEquality eta of
+                  -- If it's a no-eta, pattern-matching record, then the
+                  -- Kan operations behave as they do for data types; Only
+                  -- reduce when the base is a constructor
+                  -- YJ: u0 is not reduced. Can/should we reduce it first?
+                  NoEta PatternMatching -> case unArg u0 of
+                    Con{} -> True
+                    _ -> False
+                  -- For every other case, we can reduce into a value
+                  -- defined by copatterns; However, this would expose the
+                  -- internal name of transp/hcomp when printed, so hold
+                  -- off until there are projections.
+                  -- YJ: what about eta, pattern-matching?
+                  _ -> nelims > 6
+                doR _ = False
+
+              -- Record and data types have their own implementations of
+              -- the Kan operations, which get generated as part of their
+              -- definition.
+              case theDef info of
+                  -- Records know how to hcomp themselves:
+                  | doR r, Just as <- allApplyElims es, Just hCompR <- nameOfHComp kit ->
+                    redReturn $ Def hCompR [] `apply` (as ++ [ignoreBlocking sphi, fromMaybe __IMPOSSIBLE__ u,u0])
+
+                  -- If this is a record with no fields, then compData
+                  -- will know what to do with it:
+                  | Just as <- allApplyElims es, [] <- recFields r ->
+                    compData Nothing False (recPars r) cmd l (as <$ t) sbA sphi u u0
+
+                -- For data types, if this data type is indexed and/or a
+                -- higher inductive type, then hcomp is normal; But
+                -- compData knows what to do for the general cases.
+                Datatype{dataPars = pars, dataIxs = ixs, dataPathCons = pcons, dataTransp = mtrD}
+                  | and [null pcons && ixs == 0 | DoHComp  <- [cmd]], Just as <- allApplyElims es ->
+                    compData mtrD (not (null pcons) || ixs > 0) (pars + ixs) cmd l (as <$ t) sbA sphi u u0
+
+                _          -> fallback
 
             Def q _ -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting unmatched def type" <+> prettyTCM tbC
@@ -195,7 +240,7 @@ prim_sqFill' = do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting type" <+> prettyTCM tbC
               reportSDoc "cubical.prim.uip" 60 $ "internal representation:" <+> pshow tbC
               nored bC
-            
+
         [] -> __IMPOSSIBLE__ -- not enough arguments
       where
         nored t = return $ NoReduction [notReduced t]
@@ -226,7 +271,7 @@ prim_sqFill' = do
 --               let bA = pure $ unEl (unDom aDom)
 --               let bB = pure $ unEl (unAbs bAbs)
 --               let sqPFillB = pure tySqPFill <@> bB
---               -- ret <- pure sqPFillPi <@> bA <@> bB <@> sqPFillB 
+--               -- ret <- pure sqPFillPi <@> bA <@> bB <@> sqPFillB
 --               ret <- foldl (<@>) (pure sqPFillPi) ([bA, bB, sqPFillB] ++ map (pure . unArg) rest)
 --               redReturn ret
 --             -- Lam arginfo (NoAbs {unAbs = (Lam arginfo' (NoAbs {unAbs = t}))}) -> do
