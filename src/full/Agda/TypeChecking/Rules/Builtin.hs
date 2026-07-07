@@ -41,7 +41,6 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
-import Agda.TypeChecking.Pretty
 
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term ( checkExpr , inferExpr )
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Builtin.Coinduction
@@ -234,97 +233,94 @@ coreBuiltins =
                                                              ))
                                                               (const $ const $ return ()))
 
-  , (builtinSqFill                            |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>
-                                                                (tset --> tset))
+  , (builtinSqFill                            |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                    hPi' "l" (el $ cl primLevel) $ \ l ->
+                                                                    (sort . tmSort <$> l) --> (sort . tmSort <$> l)))
                                                                 (const $ const $ return ())) -- TODO: Should we restrict that SqFill actually is SqFill?
-  , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
-                                                                    let piAB bA bB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a
-                                                                    t <- nPi' "A" tset $ \ bA -> 
-                                                                      nPi' "B" ((el bA) --> tset) $ \ bB -> 
-                                                                      (nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
-                                                                      (el $ primSqFill <@> piAB bA bB)
-                                                                    reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
-                                                                    reportSDoc "cubical.prim.uip" 60 $ text $ show t
-                                                                    return t
-                                                                  )) -- SqFill ΠA.B
+  , (builtinSqFillPi                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
+                                                                      hPi' "lb" (el $ cl primLevel) $ \ lb ->
+                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
+                                                                      nPi' "B" ((el bA) --> (sort . tmSort <$> lb)) $ \ bB ->
+                                                                      (nPi' "a" (el bA) $ \ a -> el (primSqFill <#> lb <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
+                                                                      let piAB = unEl <$> nPi' "a" (el bA) \ a -> el $ bB <@> a in
+                                                                      (el $ primSqFill <#> (primLevelMax <@> la <@> lb) <@> piAB)
+                                                                  ))
 
                                                                 (const $ const $ return ()))
 
-  , (builtinSqFillSigma                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
-                                                                    let sigmaAB bA bB = primSigma <@> primLevelZero <@> primLevelZero <@> bA <@> bB
-                                                                    t <- nPi' "A" tset $ \ bA -> 
-                                                                      nPi' "sqFillA" (el (primSqFill <@> bA)) $ \ sqFillA ->
-                                                                      nPi' "B" ((el bA) --> tset) $ \ bB -> 
-                                                                      (nPi' "a" (el bA) $ \ a -> el (primSqFill <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
-                                                                      (el $ primSqFill <@> sigmaAB bA bB)
-                                                                    -- reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
-                                                                    -- reportSDoc "cubical.prim.uip" 60 $ text $ show t
-                                                                    return t
-                                                                  )) -- SqFill ΣA.B
+  , (builtinSqFillSigma                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
+                                                                      hPi' "lb" (el $ cl primLevel) $ \ lb ->
+                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
+                                                                      nPi' "sqFillA" (el (primSqFill <#> la <@> bA)) $ \ sqFillA ->
+                                                                      nPi' "B" ((el bA) --> (sort . tmSort <$> lb)) $ \ bB ->
+                                                                      (nPi' "a" (el bA) $ \ a -> el (primSqFill <#> lb <@> (bB <@> a))) --> -- ∀a.SqFill(B a)
+                                                                      let sigmaAB = primSigma <#> la <#> lb <@> bA <@> bB in
+                                                                      (el $ primSqFill <#> (primLevelMax <@> la <@> lb) <@> sigmaAB)
+                                                                  ))
 
                                                                 (const $ const $ return ()))
-  , (builtinSqFillProduct                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
-                                                                    let prodAB bA bB = primSigma <@> primLevelZero <@> primLevelZero <@> bA <@> (lam "_" \_ -> bB)
-                                                                    t <- nPi' "A" tset $ \ bA -> 
-                                                                      nPi' "sqFillA" (el (primSqFill <@> bA)) $ \ sqFillA ->
-                                                                      nPi' "B" tset $ \ bB -> 
-                                                                      nPi' "sqFillB" (el (primSqFill <@> bB)) $ \ sqFillB ->
-                                                                      (el $ primSqFill <@> prodAB bA bB)
-                                                                    reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillPi is"
-                                                                    reportSDoc "cubical.prim.uip" 60 $ text $ show t
-                                                                    return t
-                                                                  )) -- SqFill ΠA.B
+  , (builtinSqFillProduct                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
+                                                                      hPi' "lb" (el $ cl primLevel) $ \ lb ->
+                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
+                                                                      nPi' "sqFillA" (el (primSqFill <#> la <@> bA)) $ \ sqFillA ->
+                                                                      nPi' "B" (sort . tmSort <$> lb) $ \ bB ->
+                                                                      nPi' "sqFillB" (el (primSqFill <#> lb <@> bB)) $ \ sqFillB ->
+                                                                      (el $ primSqFill <#> (primLevelMax <@> la <@> lb) <@> (primProduct <#> la <#> lb <@> bA <@> bB))
+                                                                  ))
 
                                                                 (const $ const $ return ()))
-  , (builtinSqFillCoproduct                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] ( do
-                                                                      let coprodAB bA bB = primCoproduct <@> primLevelZero <@> primLevelZero <@> bA <@> bB
-                                                                      t <- nPi' "A" tset $ \ bA -> 
-                                                                        nPi' "sqFillA" (el (primSqFill <@> bA)) $ \ sqFillA ->
-                                                                        nPi' "B" tset $ \ bB -> 
-                                                                        nPi' "sqFillB" (el (primSqFill <@> bB)) $ \ sqFillB ->
-                                                                        (el $ primSqFill <@> coprodAB bA bB)
-                                                                      reportSDoc "cubical.prim.uip" 60 $ "builtin: the type of SqFillCoproduct is"
-                                                                      reportSDoc "cubical.prim.uip" 60 $ text $ show t
-                                                                      return t
-                                                                    )) -- SqFill A + B
+  , (builtinSqFillCoproduct                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
+                                                                        hPi' "la" (el $ cl primLevel) $ \ la ->
+                                                                        hPi' "lb" (el $ cl primLevel) $ \ lb ->
+                                                                        nPi' "A" (sort . tmSort <$> la) $ \ bA ->
+                                                                        nPi' "sqFillA" (el (primSqFill <#> la <@> bA)) $ \ sqFillA ->
+                                                                        nPi' "B" (sort . tmSort <$> lb) $ \ bB ->
+                                                                        nPi' "sqFillB" (el (primSqFill <#> lb <@> bB)) $ \ sqFillB ->
+                                                                        (el $ primSqFill <#> (primLevelMax <@> la <@> lb) <@> (primCoproduct <#> la <#> lb <@> bA <@> bB))
+                                                                    ))
 
                                                                   (const $ const $ return ()))
 
-  , (builtinSqFillUnit                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primUnit))
+  , (builtinSqFillUnit                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <#> primLevelZero <@> primUnit))
                                                                 (const $ const $ return ()))
 
-  , (builtinSqFillBool                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primBool))
+  , (builtinSqFillBool                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <#> primLevelZero <@> primBool))
                                                                 (const $ const $ return ()))
 
-  , (builtinSqFillNat                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <@> primNat))
+  , (builtinSqFillNat                      |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> el (primSqFill <#> primLevelZero <@> primNat))
                                                                 (const $ const $ return ()))
 
   , (builtinSqFillList                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      nPi' "A" tset $ \ bA -> 
-                                                                      (el $ primSqFill <@> bA) -->
-                                                                      (el $ primSqFill <@> (primList <@> bA))))
+                                                                      nPi' "A" tset $ \ bA ->
+                                                                      (el $ primSqFill <#> primLevelZero <@> bA) -->
+                                                                      (el $ primSqFill <#> primLevelZero <@> (primList <@> bA))))
                                                                 (const $ const $ return ()))
 
   , (builtinSqFillMaybe                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      nPi' "A" tset $ \ bA -> 
-                                                                      (el $ primSqFill <@> bA) -->
-                                                                      (el $ primSqFill <@> (primMaybe <@> bA))))
+                                                                      nPi' "A" tset $ \ bA ->
+                                                                      (el $ primSqFill <#> primLevelZero <@> bA) -->
+                                                                      (el $ primSqFill <#> primLevelZero <@> (primMaybe <@> bA))))
                                                                 (const $ const $ return ()))
   , (builtinSqFillPath                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      nPi' "A" tset $ \ bA -> 
-                                                                      nPi' "a" (el bA) $ \ a -> 
-                                                                      nPi' "b" (el bA) $ \ b -> 
-                                                                      (el $ primSqFill <@> bA) --> 
-                                                                      (el $ primSqFill <@> (primPath <#> primLevelZero <#> bA <@> a <@> b))))
+                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
+                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
+                                                                      nPi' "a" (el bA) $ \ a ->
+                                                                      nPi' "b" (el bA) $ \ b ->
+                                                                      (el $ primSqFill <#> la <@> bA) -->
+                                                                      (el $ primSqFill <#> la <@> (primPath <#> la <#> bA <@> a <@> b))))
                                                                 (const $ const $ return ()))
   , (builtinSqFillPathP                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      nPi' "A" tset $ \ bA -> 
-                                                                      nPi' "B" tset $ \ bB -> 
-                                                                      nPi' "a" (el bA) $ \ a -> 
-                                                                      nPi' "b" (el bB) $ \ b -> 
-                                                                      nPi' "P" (el $ primPath <#> (primLevelSuc <@> primLevelZero) <#> (unEl <$> tset) <@> bA <@> bB) $ \ bP -> 
-                                                                      (el $ primSqFill <@> bA) -->
-                                                                      (el $ primSqFill <@> (primPathP <#> primLevelZero <@> bP <@> a <@> b))))
+                                                                      hPi' "l" (el $ cl primLevel) $ \ l ->
+                                                                      nPi' "A" (sort . tmSort <$> l) $ \ bA ->
+                                                                      nPi' "B" (sort . tmSort <$> l) $ \ bB ->
+                                                                      nPi' "a" (el bA) $ \ a ->
+                                                                      nPi' "b" (el bB) $ \ b ->
+                                                                      nPi' "P" (el $ primPath <#> (primLevelSuc <@> l) <#> (Sort . tmSort <$> l) <@> bA <@> bB) $ \ bP ->
+                                                                      (el $ primSqFill <#> l <@> bA) -->
+                                                                      (el $ primSqFill <#> l <@> (primPathP <#> l <@> bP <@> a <@> b))))
                                                                 (const $ const $ return ()))
 
   -- , (builtinSqPFill                           |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >>
@@ -344,11 +340,11 @@ coreBuiltins =
   --                                                                                      unEl <$> nPi' "a" (el $ bA <@> i <@> j) \ a ->
   --                                                                                       el $ bB <@> i <@> j <@> a in
 
-  --                                                                 nPi' "A" (cl tinterval --> cl tinterval --> tset) $ \ bA -> 
+  --                                                                 nPi' "A" (cl tinterval --> cl tinterval --> tset) $ \ bA ->
   --                                                                 nPi' "B" (nPi' "i" (cl tinterval) $ \i ->
   --                                                                           nPi' "j" (cl tinterval) $ \j ->
   --                                                                           (el (bA <@> i <@> j)) -->
-  --                                                                           tset)                                   $ \ bB -> 
+  --                                                                           tset)                                   $ \ bB ->
   --                                                                 (nPi' "a" (aij_type bA) $ \ a -> el (sqPFill <@> bija_type bB a)) --> -- SqPFillB
   --                                                                 (el $ sqPFill <@> (piab bA bB)))) -- SqPFill ΠA.B
   --                                                               (const $ const $ return ()))
@@ -998,6 +994,7 @@ bindBuiltinInfo (BuiltinInfo s d) e = do
         (v, t) <- caseMaybe mt (inferExpr e) $ \ tcmt -> do
           t <- tcmt
           (,t) <$> checkExpr e t
+        reportSDoc "yj" 10 "trying to bind unknown"
         f v t
         if | s == builtinRewrite -> runMaybeT (getQNameFromTerm v) >>= \case
               Nothing -> typeError $ InvalidBuiltin "Invalid rewrite relation"
