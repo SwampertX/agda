@@ -294,17 +294,15 @@ coreBuiltins =
                                                                 (const $ const $ return ()))
 
   , (builtinSqFillList                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
-                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
-                                                                      (el $ primSqFill <#> la <@> bA) -->
-                                                                      (el $ primSqFill <#> la <@> (primList <@> bA))))
+                                                                      nPi' "A" tset $ \ bA ->
+                                                                      (el $ primSqFill <#> primLevelZero <@> bA) -->
+                                                                      (el $ primSqFill <#> primLevelZero <@> (primList <@> bA))))
                                                                 (const $ const $ return ()))
 
   , (builtinSqFillMaybe                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
-                                                                      hPi' "la" (el $ cl primLevel) $ \ la ->
-                                                                      nPi' "A" (sort . tmSort <$> la) $ \ bA ->
-                                                                      (el $ primSqFill <#> la <@> bA) -->
-                                                                      (el $ primSqFill <#> la <@> (primMaybe <#> la <@> bA))))
+                                                                      nPi' "A" tset $ \ bA ->
+                                                                      (el $ primSqFill <#> primLevelZero <@> bA) -->
+                                                                      (el $ primSqFill <#> primLevelZero <@> (primMaybe <@> bA))))
                                                                 (const $ const $ return ()))
   , (builtinSqFillPath                         |-> BuiltinUnknown (Just $ requireCubical CWithoutGlue >> runNamesT [] (
                                                                       hPi' "la" (el $ cl primLevel) $ \ la ->
@@ -996,6 +994,7 @@ bindBuiltinInfo (BuiltinInfo s d) e = do
         (v, t) <- caseMaybe mt (inferExpr e) $ \ tcmt -> do
           t <- tcmt
           (,t) <$> checkExpr e t
+        reportSDoc "yj" 10 "trying to bind unknown"
         f v t
         if | s == builtinRewrite -> runMaybeT (getQNameFromTerm v) >>= \case
               Nothing -> typeError $ InvalidBuiltin "Invalid rewrite relation"

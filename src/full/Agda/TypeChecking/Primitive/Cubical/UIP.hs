@@ -139,17 +139,16 @@ prim_sqFill' = do
               reportSDoc "cubical.prim.uip.list" 40 $ "we are getting List type" <+> prettyTCM tbC
               tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
               sqFillList <- getTerm "for SqFillList" builtinSqFillList
-              let l0 = Level (ClosedLevel 0)
-              sqFillA <- pure tmSqFill <#> pure l0 <@> pure (unArg bA)
-              redReturn $ apply sqFillList ([(setHiding Hidden . defaultArg) l0, bA, defaultArg sqFillA] ++ rest)
+              sqFillA <- pure tmSqFill <@> pure (unArg bA)
+              redReturn $ apply sqFillList ([bA, defaultArg sqFillA] ++ rest)
 
             -- Maybe
-            Def q [Apply la, Apply bA] | Just q == mMaybe -> do
+            Def q [Apply bA] | Just q == mMaybe -> do
               reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM tbC
               tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
               sqFillMaybe <- getTerm "for SqFillMaybe" builtinSqFillMaybe
-              let sqFillA :: Term = apply tmSqFill [la, bA]
-              redReturn $ apply sqFillMaybe ([la, bA, defaultArg sqFillA] ++ rest)
+              sqFillA <- pure tmSqFill <@> pure (unArg bA)
+              redReturn $ apply sqFillMaybe ([bA, defaultArg sqFillA] ++ rest)
 
             -- Note: reducing bC always unfolds _≡_ to PathP, so the Just path' == mpath
             -- guard is never fired in practice; the isNonDep check handles non-dep paths.
