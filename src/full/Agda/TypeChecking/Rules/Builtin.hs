@@ -912,6 +912,7 @@ bindBuiltinInfo (BuiltinInfo s d) e = do
            | s == builtinInteger  -> bindBuiltinInt      v
            | s == builtinUnit     -> bindBuiltinUnit     v
            | s == builtinSigma    -> bindBuiltinSigma    v
+           -- YJ TODO: checks for product and coproduct
            | s == builtinList     -> bindBuiltinData s   v
            | s == builtinMaybe    -> bindBuiltinData s   v
            | otherwise            -> bindBuiltinName s   v
