@@ -123,14 +123,21 @@ prim_sqFill' = do
                 redReturn $ sqFillNat `apply` rest
 
             -- List
-            Def q [Apply bA]
+            -- YJ : the required signature for list is @Set -> Set@, and can be prefixed by any number of implicit
+            -- arguments that can probably (CHECK) only be levels, so @{l} -> Set l -> Set l@ and
+            -- @{a b} -> Set a -> Set (lmax a b)@ etc are accepted.
+            -- Instead of getting level from any hidden argument, we use the constraint that the domain and codomain
+            -- must have the same level and take the level from the parameter @A : Type@ of the list.
+            Def q [Apply la, Apply bA]
               | Just q == mList -> do
-                  reportSDoc "cubical.prim.uip.list" 40 $ "we are getting List type" <+> prettyTCM tbC
+                  reportSDoc "cubical.prim.uip" 40 $ "we are getting List type" <+> prettyTCM tbC
                   tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
                   sqFillList <- getTerm "for SqFillList" builtinSqFillList
                   sqFillA <- pure tmSqFill <@> pure (unArg bA)
                   redReturn $ apply sqFillList ([bA, defaultArg sqFillA] ++ rest)
 
+            -- YJ: Same applies for Maybe.
+            Def q [Apply la, Apply bA]
               | Just q == mMaybe -> do
                   reportSDoc "cubical.prim.uip" 40 $ "we are getting Maybe type" <+> prettyTCM tbC
                   tmSqFill    <- getTerm "for SqFillList" builtin_sqFill -- recursive!
